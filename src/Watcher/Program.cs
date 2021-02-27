@@ -17,9 +17,9 @@ namespace Watcher
             return 0;
         }
 
-        static void OnTrafficReceived(object sender, TrafficEventArgs e)
+        static void OnTrafficReceived(object sender, Packet e)
         {
-            HexDump(e.RawData);
+            HexDump(e.Data);
         }
 
         static void HexDump(byte[] data)
