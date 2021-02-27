@@ -24,21 +24,23 @@ namespace Watcher
 
         static void HexDump(byte[] data)
         {
-            Console.WriteLine("      0  1  2  3  4  5  6  7  8    9  a  b  c  d  e  f");
-            Console.WriteLine("     -- -- -- -- -- -- -- -- --   -- -- -- -- -- -- --");
+            Console.WriteLine("       0  1  2  3  4  5  6  7    8  9  a  b  c  d  e  f");
+            Console.WriteLine("      -- -- -- -- -- -- -- --   -- -- -- -- -- -- -- --");
             for (int row = 0; row < data.Length; row += 0x10)
             {
                 Console.Write("{0} ", row.ToString("x4"));
                 for (int col = 0; col < 0x10; ++col)
                 {
                     int ofs = row + col;
+                    if (col == 8)
+                        Console.Write("  ");
                     if (ofs < data.Length)
                         Console.Write(" {0}", data[ofs].ToString("x2"));
                     else
                         Console.Write("   ");
                 }
 
-                Console.Write("  |");
+                Console.Write("  ");
 
                 for (int col = 0; col < 0x10; ++col)
                 {
@@ -51,8 +53,9 @@ namespace Watcher
                         Console.Write(".");
                 }
 
-                Console.WriteLine("|");
+                Console.WriteLine();
             }
+            Console.WriteLine();
         }
     }
 }
