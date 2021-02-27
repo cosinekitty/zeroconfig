@@ -1,4 +1,5 @@
 ﻿using System;
+using CosineKitty.ZeroConfigWatcher;
 
 namespace Watcher
 {
@@ -6,7 +7,52 @@ namespace Watcher
     {
         static int Main(string[] args)
         {
+            using (var monitor = new TrafficMonitor())
+            {
+                monitor.OnReceive += OnTrafficReceived;
+                monitor.Start();
+                Console.WriteLine("Listening for traffic. Press ENTER to quit.");
+                Console.ReadLine();
+            }
             return 0;
+        }
+
+        static void OnTrafficReceived(object sender, TrafficEventArgs e)
+        {
+            HexDump(e.RawData);
+        }
+
+        static void HexDump(byte[] data)
+        {
+            Console.WriteLine("      0  1  2  3  4  5  6  7  8    9  a  b  c  d  e  f");
+            Console.WriteLine("     -- -- -- -- -- -- -- -- --   -- -- -- -- -- -- --");
+            for (int row = 0; row < data.Length; row += 0x10)
+            {
+                Console.Write("{0} ", row.ToString("x4"));
+                for (int col = 0; col < 0x10; ++col)
+                {
+                    int ofs = row + col;
+                    if (ofs < data.Length)
+                        Console.Write(" {0}", data[ofs].ToString("x2"));
+                    else
+                        Console.Write("   ");
+                }
+
+                Console.Write("  |");
+
+                for (int col = 0; col < 0x10; ++col)
+                {
+                    int ofs = row + col;
+                    if (ofs >= data.Length)
+                        break;
+                    if (data[ofs] >= 0x20 && data[ofs] <= 0x7f)
+                        Console.Write("{0}", (char)data[ofs]);
+                    else
+                        Console.Write(".");
+                }
+
+                Console.WriteLine("|");
+            }
         }
     }
 }
