@@ -74,16 +74,25 @@ namespace Watcher
 
             foreach (AnswerRR a in response.Answers)
                 PrintRR(a);
+
+            foreach (AuthorityRR a in response.Authorities)
+                PrintRR(a);
+
+            foreach (AdditionalRR a in response.Additionals)
+                PrintRR(a);
         }
 
         private static void PrintQuestion(Question q)
         {
-            Console.WriteLine("Question: [{0}] type={1} class={2}", q.QName, q.QType, q.QClass);
+            Console.WriteLine("Question: name=[{0}] type={1} class={2}", q.QName, q.QType, q.QClass);
         }
 
         private static void PrintRR(RR a)
         {
-            Console.WriteLine("Answer: [{0}] type={1} class={2}", a.NAME, a.Type, a.Class);
+            Console.WriteLine("{0}: name=[{1}] type={2} class={3} TTL={4}", a.GetType().Name, a.NAME, a.Type, a.Class, a.TTL);
+            if (a.RECORD != null)
+                Console.WriteLine("{0}", a.RECORD);
+            Console.WriteLine();
         }
     }
 }

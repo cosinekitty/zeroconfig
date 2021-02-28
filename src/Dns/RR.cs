@@ -124,7 +124,7 @@ namespace Heijden.DNS
 
 		public override string ToString()
 		{
-			return string.Format("{0,-32} {1}\t{2}\t{3}\t{4}",
+			return string.Format("name=[{0}] TTL={1} class={2} type={3} record=[{4}]",
 				NAME,
 				TTL,
 				Class,

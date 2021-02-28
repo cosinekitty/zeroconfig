@@ -43,8 +43,11 @@ namespace Heijden.DNS
 		{
 			StringBuilder sb = new StringBuilder();
 			foreach (string txt in TXT)
-				sb.AppendFormat("\"{0}\" ", txt);
-			return sb.ToString().TrimEnd();
+			{
+				sb.AppendFormat("TXT \"{0}\"", txt);
+				sb.AppendLine();
+			}
+			return sb.ToString();
 		}
 
 	}

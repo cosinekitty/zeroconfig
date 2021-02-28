@@ -33,6 +33,5 @@ namespace Heijden.DNS
 		{
 			return PTRDNAME;
 		}
-
 	}
 }
