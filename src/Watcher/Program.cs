@@ -11,7 +11,7 @@ namespace Watcher
             {
                 monitor.OnReceive += OnTrafficReceived;
                 monitor.Start();
-                Console.WriteLine("Listening for traffic. Press ENTER to quit.");
+                Console.WriteLine("Listening for traffic on {0} adapter(s). Press ENTER to quit.", monitor.ListeningAdapterCount);
                 Console.ReadLine();
             }
             return 0;

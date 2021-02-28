@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Net;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
@@ -14,7 +13,7 @@ namespace CosineKitty.ZeroConfigWatcher
         private Thread queueWorkerThread;
         private readonly AutoResetEvent signal = new AutoResetEvent(false);
         private bool closed;
-        private UdpClient udpClient4;   // IPv4 client
+        private UdpClient[] clientList;
         private readonly Queue<Packet> inQueue = new();
         // FIXFIXFIX: add IPv6 client support.
 
@@ -27,7 +26,7 @@ namespace CosineKitty.ZeroConfigWatcher
                 if (closed)
                     throw new Exception("Cannot restart a TrafficMonitor after it has been disposed.");
 
-                if (udpClient4 != null)
+                if (clientList != null)
                     throw new Exception("TrafficMonitor has already been started.");
 
                 queueWorkerThread = new Thread(QueueWorkerThread)
@@ -37,19 +36,55 @@ namespace CosineKitty.ZeroConfigWatcher
                 };
                 queueWorkerThread.Start();
 
-                udpClient4 = MakeClient();
-                udpClient4.BeginReceive(ReceiveCallback, null);
+                clientList = MakeClientList();
+                foreach (UdpClient client in clientList)
+                    client.BeginReceive(ReceiveCallback, client);
             }
         }
 
-        private UdpClient MakeClient()
+        public int ListeningAdapterCount
+        {
+            get
+            {
+                lock (mutex)
+                {
+                    return (clientList == null) ? 0 : clientList.Length;
+                }
+            }
+        }
+
+        private static UdpClient[] MakeClientList()
+        {
+            NetworkInterface[] adapterList = GetMulticastAdapterList();
+            var clientList = new List<UdpClient>();
+            foreach (NetworkInterface adapter in adapterList)
+            {
+                int adapterIndex = adapter.GetIPProperties().GetIPv4Properties().Index;
+                UdpClient client = new UdpClient();
+                Socket socket = client.Client;
+                socket.SetSocketOption(SocketOptionLevel.IP, SocketOptionName.MulticastInterface, IPAddress.HostToNetworkOrder(adapterIndex));
+                client.ExclusiveAddressUse = false;
+                socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
+                var localEp = new IPEndPoint(IPAddress.Any, 5353);
+                socket.Bind(localEp);
+                var multicastAddress = IPAddress.Parse("224.0.0.251");
+                var multOpt = new MulticastOption(multicastAddress, adapterIndex);
+                socket.SetSocketOption(SocketOptionLevel.IP, SocketOptionName.AddMembership, multOpt);
+                clientList.Add(client);
+            }
+
+            if (clientList.Count == 0)
+                throw new Exception("Could not find any multicast network adapters.");
+
+            return clientList.ToArray();
+        }
+
+        private static NetworkInterface[] GetMulticastAdapterList()
         {
             // https://stackoverflow.com/questions/2192548/specifying-what-network-interface-an-udp-multicast-should-go-to-in-net
             // https://windowsasusual.blogspot.com/2013/01/socket-option-multicast-interface.html
 
-            var udpClient = new UdpClient();
-            Socket socket = udpClient.Client;
-
+            var list = new List<NetworkInterface>();
             NetworkInterface[] nics = NetworkInterface.GetAllNetworkInterfaces();
             foreach (NetworkInterface adapter in nics)
             {
@@ -75,18 +110,9 @@ namespace CosineKitty.ZeroConfigWatcher
                 {
                     continue;   // skip adapters without indexes
                 }
-
-                socket.SetSocketOption(SocketOptionLevel.IP, SocketOptionName.MulticastInterface, (int)IPAddress.HostToNetworkOrder(index));
-                udpClient.ExclusiveAddressUse = false;
-                socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
-                var localEp = new IPEndPoint(IPAddress.Any, 5353);
-                socket.Bind(localEp);
-                var multicastAddress = IPAddress.Parse("224.0.0.251");
-                var multOpt = new MulticastOption(multicastAddress, index);
-                socket.SetSocketOption(SocketOptionLevel.IP, SocketOptionName.AddMembership, multOpt);
-                return udpClient;
+                list.Add(adapter);
             }
-            throw new Exception("Could not find suitable adapter for multicast.");
+            return list.ToArray();
         }
 
         public void Dispose()
@@ -97,10 +123,12 @@ namespace CosineKitty.ZeroConfigWatcher
                     return;     // ignore redundant calls
 
                 closed = true;
-                if (udpClient4 != null)
+                if (clientList != null)
                 {
-                    udpClient4.Dispose();
-                    udpClient4 = null;
+                    foreach (UdpClient client in clientList)
+                        client.Dispose();
+
+                    clientList = null;
                 }
             }
             signal.Set();   // wake up worker thread so it notices we are closing; it then exits immediately.
@@ -114,11 +142,12 @@ namespace CosineKitty.ZeroConfigWatcher
                 if (closed)
                     return;
 
+                UdpClient client = (UdpClient)result.AsyncState;
                 IPEndPoint remoteEndPoint = null;
-                byte[] data = udpClient4.EndReceive(result, ref remoteEndPoint);
+                byte[] data = client.EndReceive(result, ref remoteEndPoint);
                 var packet = new Packet { Data = data, RemoteEndPoint = remoteEndPoint };
                 inQueue.Enqueue(packet);
-                udpClient4.BeginReceive(ReceiveCallback, null);
+                client.BeginReceive(ReceiveCallback, client);
             }
             signal.Set();
         }
