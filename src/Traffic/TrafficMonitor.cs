@@ -145,7 +145,7 @@ namespace CosineKitty.ZeroConfigWatcher
                 UdpClient client = (UdpClient)result.AsyncState;
                 IPEndPoint remoteEndPoint = null;
                 byte[] data = client.EndReceive(result, ref remoteEndPoint);
-                var packet = new Packet { Data = data, RemoteEndPoint = remoteEndPoint };
+                var packet = new Packet { Data = data, RemoteEndPoint = remoteEndPoint, UtcArrival = DateTime.UtcNow };
                 inQueue.Enqueue(packet);
                 client.BeginReceive(ReceiveCallback, client);
             }

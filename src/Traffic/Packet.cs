@@ -1,3 +1,4 @@
+using System;
 using System.Net;
 
 namespace CosineKitty.ZeroConfigWatcher
@@ -6,6 +7,7 @@ namespace CosineKitty.ZeroConfigWatcher
 
     public class Packet
     {
+        public DateTime UtcArrival;
         public IPEndPoint RemoteEndPoint;
         public byte[] Data;
     }

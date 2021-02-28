@@ -20,7 +20,7 @@ namespace Watcher
 
         static void OnTrafficReceived(object sender, Packet e)
         {
-            Console.WriteLine("{0} : packet from {1}", DateTime.UtcNow.ToString("o"), e.RemoteEndPoint.Address);
+            Console.WriteLine("{0} : packet from {1}", e.UtcArrival.ToString("o"), e.RemoteEndPoint.Address);
             HexDump(e.Data);
         }
 
