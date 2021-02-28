@@ -12,6 +12,7 @@ namespace Watcher
                 monitor.OnReceive += OnTrafficReceived;
                 monitor.Start();
                 Console.WriteLine("Listening for traffic on {0} adapter(s). Press ENTER to quit.", monitor.ListeningAdapterCount);
+                Console.WriteLine();
                 Console.ReadLine();
             }
             return 0;
@@ -19,6 +20,7 @@ namespace Watcher
 
         static void OnTrafficReceived(object sender, Packet e)
         {
+            Console.WriteLine("{0} : packet from {1}", DateTime.UtcNow.ToString("o"), e.RemoteEndPoint.Address);
             HexDump(e.Data);
         }
 
