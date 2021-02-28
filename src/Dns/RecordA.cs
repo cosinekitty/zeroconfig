@@ -12,12 +12,12 @@ ADDRESS         A 32 bit Internet address.
 
 Hosts that have multiple Internet addresses will have multiple A
 records.
- * 
+ *
  */
 
 namespace Heijden.DNS
 {
-    class RecordA : Record
+    public class RecordA : Record
 	{
         public string Address;
 

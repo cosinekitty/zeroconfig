@@ -16,13 +16,13 @@ TXT-DATA        One or more <character-string>s.
 
 TXT RRs are used to hold descriptive text.  The semantics of the text
 depends on the domain where it is found.
- * 
+ *
 */
 #endregion
 
 namespace Heijden.DNS
 {
-    class RecordTXT : Record
+    public class RecordTXT : Record
 	{
 		public List<string> TXT;
 

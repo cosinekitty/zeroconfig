@@ -124,7 +124,7 @@ namespace Heijden.DNS
 		*/
 	#endregion
 
-    class Header
+    public class Header
 	{
 		/// <summary>
 		/// An identifier assigned by the program

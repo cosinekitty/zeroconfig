@@ -7,7 +7,7 @@ using System.Text;
 
 namespace Heijden.DNS
 {
-    class Response
+    public class Response
 	{
 		/// <summary>
 		/// List of Question records
@@ -126,7 +126,7 @@ namespace Heijden.DNS
 		{
 			get
 			{
-				List<RecordTXT> list = new List<RecordTXT>();
+				var list = new List<RecordTXT>();
 				foreach (AnswerRR answerRR in this.Answers)
 				{
                     if (answerRR.RECORD is RecordTXT record)

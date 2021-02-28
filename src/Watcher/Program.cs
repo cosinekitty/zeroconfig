@@ -1,5 +1,6 @@
 ﻿using System;
 using CosineKitty.ZeroConfigWatcher;
+using Heijden.DNS;
 
 namespace Watcher
 {
@@ -20,8 +21,13 @@ namespace Watcher
 
         static void OnTrafficReceived(object sender, Packet e)
         {
+            Console.WriteLine("=========================================================================");
             Console.WriteLine("{0} : packet from {1}", e.UtcArrival.ToString("o"), e.RemoteEndPoint.Address);
+            Console.WriteLine();
             HexDump(e.Data);
+            Console.WriteLine();
+            Interpret(e.Data);
+            Console.WriteLine();
         }
 
         static void HexDump(byte[] data)
@@ -57,7 +63,27 @@ namespace Watcher
 
                 Console.WriteLine();
             }
-            Console.WriteLine();
+        }
+
+        static void Interpret(byte[] data)
+        {
+            var response = new Response(data);
+
+            foreach (Question q in response.Questions)
+                PrintQuestion(q);
+
+            foreach (AnswerRR a in response.Answers)
+                PrintRR(a);
+        }
+
+        private static void PrintQuestion(Question q)
+        {
+            Console.WriteLine("Question: [{0}] type={1} class={2}", q.QName, q.QType, q.QClass);
+        }
+
+        private static void PrintRR(RR a)
+        {
+            Console.WriteLine("Answer: [{0}] type={1} class={2}", a.NAME, a.Type, a.Class);
         }
     }
 }

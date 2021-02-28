@@ -11,7 +11,7 @@ using System;
 
 namespace Heijden.DNS
 {
-    class RecordAAAA : Record
+    public class RecordAAAA : Record
 	{
         public string Address;
 
@@ -30,8 +30,7 @@ namespace Heijden.DNS
 
 		public override string ToString()
 		{
-			return Address.ToString();
+			return Address;
 		}
-
 	}
 }

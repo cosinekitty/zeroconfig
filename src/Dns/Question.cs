@@ -46,7 +46,7 @@ namespace Heijden.DNS
 	*/
 	#endregion
 
-    class Question
+    public class Question
 	{
         string m_QName;
 		public string QName
