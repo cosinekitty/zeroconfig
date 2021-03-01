@@ -3,7 +3,7 @@ using System.Net;
 
 namespace CosineKitty.ZeroConfigWatcher
 {
-    public delegate void TrafficEventHandler(object sender, Packet e);
+    public delegate void TrafficEventHandler(object sender, Packet packet);
 
     public class Packet
     {

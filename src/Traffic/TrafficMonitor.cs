@@ -36,6 +36,7 @@ namespace CosineKitty.ZeroConfigWatcher
                 };
                 queueWorkerThread.Start();
 
+                // FIXFIXFIX: adapt to changing network conditions (adapters being added/removed, IP address changes, etc.)
                 clientList = MakeClientList();
                 foreach (UdpClient client in clientList)
                     client.BeginReceive(ReceiveCallback, client);
