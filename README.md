@@ -87,5 +87,5 @@ Code for parsing DNS packets derives from the
 [DNS.NET Resolver project](https://www.codeproject.com/Articles/23673/DNS-NET-Resolver-C)
 by Alphons van der Heijden.
 
-This code includes modifications made for Claire Novotny's
+The DNS code also includes modifications made for Claire Novotny's
 [Zeroconf](https://github.com/novotnyllc/Zeroconf) Bonjour/MDNS discovery project.
