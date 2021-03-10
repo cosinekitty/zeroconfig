@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-
 namespace CosineKitty.ZeroConfigWatcher
 {
     public class ServiceBrowseResult
@@ -12,6 +9,11 @@ namespace CosineKitty.ZeroConfigWatcher
         {
             Name = name;
             ServiceType = serviceType;
+        }
+
+        public override string ToString()
+        {
+            return $"[{Name}] {ServiceType}";
         }
     }
 }

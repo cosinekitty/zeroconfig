@@ -65,29 +65,28 @@ using System;
 
 namespace Heijden.DNS
 {
-    class RecordSRV : Record
-	{
-		public ushort PRIORITY;
-		public ushort WEIGHT;
-		public ushort PORT;
-		public string TARGET;
+     public class RecordSRV : Record
+     {
+          public ushort PRIORITY;
+          public ushort WEIGHT;
+          public ushort PORT;
+          public string TARGET;
 
-		public RecordSRV(RecordReader rr)
-		{
-			PRIORITY = rr.ReadUInt16();
-			WEIGHT = rr.ReadUInt16();
-			PORT = rr.ReadUInt16();
-			TARGET = rr.ReadDomainName();
-		}
+          public RecordSRV(RecordReader rr)
+          {
+               PRIORITY = rr.ReadUInt16();
+               WEIGHT = rr.ReadUInt16();
+               PORT = rr.ReadUInt16();
+               TARGET = rr.ReadDomainName();
+          }
 
-		public override string ToString()
-		{
-			return string.Format("{0} {1} {2} {3}",
-				PRIORITY,
-				WEIGHT,
-				PORT,
-				TARGET);
-		}
-
-	}
+          public override string ToString()
+          {
+               return string.Format("{0} {1} {2} {3}",
+                    PRIORITY,
+                    WEIGHT,
+                    PORT,
+                    TARGET);
+          }
+     }
 }

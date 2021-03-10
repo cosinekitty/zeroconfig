@@ -81,9 +81,19 @@ AdditionalRR: name=[3758acae-442a-47bd-cd16-dce0b88acd72.local.] type=A class=32
 
 ```
 
+## References
+
+[RFC 6762 : Multicast DNS](https://tools.ietf.org/html/rfc6762)
+This document describes the evolution of traditional unicast domain name service
+to a link-local multicast DNS service.
+
+[RFC 6763 : DNS-Based Service Discovery](https://tools.ietf.org/html/rfc6763)
+This document goes more into detail about how MDNS is used for browsing and
+resolving services on a local network.
+
 ## Credits
 
-Code for parsing DNS packets derives from the 
+Code for parsing DNS packets derives from the
 [DNS.NET Resolver project](https://www.codeproject.com/Articles/23673/DNS-NET-Resolver-C)
 by Alphons van der Heijden.
 

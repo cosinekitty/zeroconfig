@@ -2,6 +2,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Traffic\Traffic.csproj" />
+    <ProjectReference Include="..\Dns\Dns.csproj" />
   </ItemGroup>
 
   <PropertyGroup>
