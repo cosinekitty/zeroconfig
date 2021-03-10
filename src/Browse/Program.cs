@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Net;
 using CosineKitty.ZeroConfigWatcher;
 using Heijden.DNS;
 
@@ -34,12 +35,13 @@ For example, to search for AirPlay speakers:
                 {
                     using (var browser = new Browser(monitor))
                     {
+                        var browseList = new ServiceBrowseResult[0];
                         monitor.Start();
                         Console.WriteLine("Listening for traffic on {0} adapter(s).", monitor.ListeningAdapterCount);
                         Console.WriteLine();
                         while (true)
                         {
-                            Console.WriteLine("Enter command (q = quit, b = browse, r 'Service Name' = resolve)");
+                            Console.WriteLine("Enter command (q = quit, b = browse, r <index> = resolve)");
                             Console.Write("> ");
                             Console.Out.Flush();
                             string command = Console.ReadLine();
@@ -52,7 +54,7 @@ For example, to search for AirPlay speakers:
 
                             if (command == "b")
                             {
-                                ServiceBrowseResult[] browseList = browser.Browse(serviceType);
+                                browseList = browser.Browse(serviceType);
                                 foreach (ServiceBrowseResult result in browseList)
                                     Console.WriteLine(result);
                                 continue;
@@ -60,7 +62,36 @@ For example, to search for AirPlay speakers:
 
                             if (command.StartsWith("r"))
                             {
-                                Console.WriteLine("Resolve command not yet implemented.");
+                                if (browseList.Length == 0)
+                                {
+                                    Console.WriteLine("You must browse and receive at least one result before you can resolve.");
+                                }
+                                else
+                                {
+                                    string indexText = command.Substring(1).Trim();
+                                    if (int.TryParse(indexText, out int index) && (index >= 0) && (index < browseList.Length))
+                                    {
+                                        ServiceResolveResult result = browser.Resolve(browseList[index], 5);
+                                        if (result == null)
+                                        {
+                                            Console.WriteLine("RESOLVE FALIURE.");
+                                        }
+                                        else
+                                        {
+                                            Console.WriteLine("name = {0}", result.Name);
+                                            Console.WriteLine("host = {0}", result.HostName);
+                                            foreach (IPEndPoint ep in result.IpEndpointList)
+                                                Console.WriteLine("endpoint = {0}", ep);
+                                            foreach (var kv in result.TxtRecord)
+                                                Console.WriteLine("TXT \"{0}={1}\"", kv.Key, kv.Value);
+                                            Console.WriteLine();
+                                        }
+                                    }
+                                    else
+                                    {
+                                        Console.WriteLine("ERROR: Invalid browse index: must be 0..{0}", browseList.Length-1);
+                                    }
+                                }
                                 continue;
                             }
 

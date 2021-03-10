@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Net;
 using System.Timers;
 using Heijden.DNS;
 
@@ -11,6 +12,7 @@ namespace CosineKitty.ZeroConfigWatcher
     {
         private readonly TrafficMonitor monitor;
         private readonly Dictionary<string, ServiceCollection> serviceRoot = new();
+        private readonly Dictionary<string, HostInfo> hostTable = new();
         private System.Timers.Timer expirationTimer;
 
         public static IDebugLogger Logger;
@@ -52,7 +54,22 @@ namespace CosineKitty.ZeroConfigWatcher
                         Browser.Log($"OnExpirationTimer: deleting [{name}] from [{serviceType}]");
                         collection.ServiceTable.Remove(name);
                     }
+
+                    // FIXFIXFIX: should we expire TXT and SRV components too?
                 }
+
+                // Remove all expired IPv4 addresses from the host table.
+                foreach (HostInfo host in hostTable.Values)
+                    host.addressList.RemoveAll(addr => addr.IsExpired());
+
+                // Delete the host itself if its IP address list becomes empty.
+                string[] emptyHostNames = hostTable
+                    .Where(kv => kv.Value.addressList.Count == 0)
+                    .Select(kv => kv.Key)
+                    .ToArray();
+
+                foreach (string hostname in emptyHostNames)
+                    hostTable.Remove(hostname);
             }
         }
 
@@ -84,6 +101,61 @@ namespace CosineKitty.ZeroConfigWatcher
                 }
             }
             return list.ToArray();
+        }
+
+        public ServiceResolveResult Resolve(ServiceBrowseResult browseResult, int resolveTimeoutInSeconds)
+        {
+            if (browseResult != null && !string.IsNullOrEmpty(browseResult.Name) && !string.IsNullOrEmpty(browseResult.ServiceType))
+            {
+                string name = browseResult.Name;
+                string serviceType = browseResult.ServiceType + ".local.";
+
+                // FIXFIXFIX: send out packets if needed to initiate discovery.
+                // For now we use passive resolution only: we either already know the answer or we don't.
+                lock (serviceRoot)
+                {
+                    if (serviceRoot.TryGetValue(serviceType, out ServiceCollection collection))
+                    {
+                        if (collection.ServiceTable.TryGetValue(name, out ServiceInfo info))
+                        {
+                            if (info.srv != null && info.txt != null)
+                            {
+                                int port = (int)info.srv.Record.PORT;
+                                string hostname = info.srv.Record.TARGET;
+                                if (hostTable.TryGetValue(hostname, out HostInfo host))
+                                {
+                                    IPEndPoint[] endpointList = host.addressList
+                                        .Select(fact => new IPEndPoint(fact.Record.Address, port))
+                                        .ToArray();
+
+                                    var txtRecord = new Dictionary<string, string>();
+                                    foreach (string item in info.txt.Record.TXT)
+                                    {
+                                        string key;
+                                        string value;
+                                        int eq = item.IndexOf('=');
+                                        if (eq < 0)
+                                        {
+                                            key = item;
+                                            value = "";
+                                        }
+                                        else
+                                        {
+                                            key = item.Substring(0, eq);
+                                            value = item.Substring(eq+1);
+                                        }
+                                        txtRecord[key] = value;
+                                    }
+
+                                    return new ServiceResolveResult(name, hostname, endpointList, txtRecord);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            return null;
         }
 
         private static string FirstToken(string text)
@@ -122,58 +194,78 @@ namespace CosineKitty.ZeroConfigWatcher
             }
             */
 
-            foreach (AnswerRR a in response.Answers)
+            foreach (AnswerRR answer in response.Answers)
+                Process(answer);
+
+            foreach (AuthorityRR answer in response.Authorities)
+                Process(answer);
+
+            foreach (AdditionalRR answer in response.Additionals)
+                Process(answer);
+        }
+
+        private void Process(RR answer)
+        {
+            if (answer.RECORD is RecordPTR ptr)
             {
-                if (a.RECORD is RecordPTR ptr)
+                string serviceType = answer.NAME;
+                string name = FirstToken(ptr.PTRDNAME);
+                if (name != null && serviceType != null)
                 {
-                    string serviceType = a.NAME;
-                    string name = FirstToken(ptr.PTRDNAME);
-                    if (name != null && serviceType != null)
+                    Browser.Log($"Process: serviceType=[{serviceType}], name=[{name}]");
+                    lock (serviceRoot)
                     {
-                        Browser.Log($"OnPacket: serviceType=[{serviceType}], name=[{name}]");
-                        lock (serviceRoot)
-                        {
-                            ServiceCollection collection = LazyCreateServiceType(serviceType);
-                            ServiceInfo info = collection.LazyCreate(name);
-                            info.UpdatePtr(ptr);
-                        }
+                        ServiceCollection collection = LazyCreateServiceType(serviceType);
+                        ServiceInfo info = collection.LazyCreate(name);
+                        info.UpdatePtr(ptr);
                     }
                 }
             }
+            else if (answer.RECORD is RecordSRV srv)
+            {
+                // FIXFIXFIX: handle name conflicts discovered by existing "defenders" with the same name.
+                string serviceType = RemainingText(answer.NAME);
+                string name = FirstToken(answer.NAME);
+                if (name != null && serviceType != null)
+                {
+                    lock (serviceRoot)
+                    {
+                        ServiceCollection collection = LazyCreateServiceType(serviceType);
+                        ServiceInfo info = collection.LazyCreate(name);
+                        info.UpdateSrv(srv);
+                    }
+                }
+            }
+            else if (answer.RECORD is RecordTXT txt)
+            {
+                string serviceType = RemainingText(answer.NAME);
+                string name = FirstToken(answer.NAME);
+                if (name != null && serviceType != null)
+                {
+                    lock (serviceRoot)
+                    {
+                        ServiceCollection collection = LazyCreateServiceType(serviceType);
+                        ServiceInfo info = collection.LazyCreate(name);
+                        info.UpdateTxt(txt);
+                    }
+                }
+            }
+            else if (answer.RECORD is RecordA ipv4)
+            {
+                string hostName = ipv4.RR.NAME;
+                lock (serviceRoot)
+                {
+                    if (!hostTable.TryGetValue(hostName, out HostInfo hostInfo))
+                        hostTable.Add(hostName, hostInfo = new HostInfo());
 
+                    hostInfo.UpdateAddress(ipv4);
+                }
+            }
             /*
-
-            foreach (AuthorityRR a in response.Authorities)
+            else if (answer.RECORD is RecordAAAA ipv6)
             {
-                if (a.Class == Heijden.DNS.Class.IN)
-                {
-                    if (a.Type == Heijden.DNS.Type.SRV && a.RECORD is RecordSRV srv)
-                    {
-                        // FIXFIXFIX: handle name conflicts discovered by existing "defenders" with the same name.
-                        string name = FirstToken(a.NAME);
-                        string serviceType = RemainingText(a.NAME);
-                        if (name != null && serviceType != null)
-                        {
-                            lock (serviceRoot)
-                            {
-                                if (serviceRoot.TryGetValue(serviceType, out ServiceCollection collection))
-                                {
-                                    if (!collection.ServiceTable.TryGetValue(name, out ServiceInfo info))
-                                        collection.ServiceTable.Add(name, info = new ServiceInfo());
-
-                                    info.UpdateSrv(srv);
-                                }
-                            }
-                        }
-                    }
-                }
+                // FIXFIXFIX: support IPv6 addresses too
             }
-
-
-            foreach (AdditionalRR a in response.Additionals)
-            {
-            }
-
             */
         }
 
@@ -203,6 +295,12 @@ namespace CosineKitty.ZeroConfigWatcher
     {
         public ServiceFact<RecordSRV> srv;
         public ServiceFact<RecordPTR> ptr;
+        public ServiceFact<RecordTXT> txt;
+
+        public bool IsExpired()
+        {
+            return (ptr != null) && (ptr.RemainingLifeInSeconds() < 0.0);
+        }
 
         public void UpdateSrv(RecordSRV record)
         {
@@ -218,9 +316,9 @@ namespace CosineKitty.ZeroConfigWatcher
             ptr = new ServiceFact<RecordPTR>(record);
         }
 
-        public bool IsExpired()
+        public void UpdateTxt(RecordTXT record)
         {
-            return (ptr != null) && (ptr.RemainingLifeInSeconds() < 0.0);
+            txt = new ServiceFact<RecordTXT>(record);
         }
     }
 
@@ -239,6 +337,30 @@ namespace CosineKitty.ZeroConfigWatcher
         public double RemainingLifeInSeconds()
         {
             return (double)Record.RR.TTL - Elapsed.Elapsed.TotalSeconds;
+        }
+
+        public bool IsExpired()
+        {
+            return RemainingLifeInSeconds() < 0.0;
+        }
+    }
+
+    internal class HostInfo
+    {
+        public readonly List<ServiceFact<RecordA>> addressList = new();
+
+        public void UpdateAddress(RecordA record)
+        {
+            var fact = new ServiceFact<RecordA>(record);
+            for (int i = 0; i < addressList.Count; ++i)
+            {
+                if (addressList[i].Record.Address.Equals(record.Address))
+                {
+                    addressList[i] = fact;
+                    return;
+                }
+            }
+            addressList.Add(fact);
         }
     }
 }
