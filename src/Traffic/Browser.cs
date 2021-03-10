@@ -31,7 +31,20 @@ namespace CosineKitty.ZeroConfigWatcher
 
         public ServiceBrowseResult[] Browse(string serviceType)
         {
+            if (!serviceType.EndsWith(".local."))
+                serviceType += ".local.";
+
+            // FIXFIXFIX: active browsing: send out packets to query for this service type, if needed.
+
             var list = new List<ServiceBrowseResult>();
+            lock (serviceRoot)
+            {
+                if (serviceRoot.TryGetValue(serviceType, out ServiceCollection collection))
+                {
+                    foreach (string name in collection.ServiceTable.Keys)
+                        list.Add(new ServiceBrowseResult(name, serviceType));
+                }
+            }
             return list.ToArray();
         }
 
@@ -73,16 +86,24 @@ namespace CosineKitty.ZeroConfigWatcher
 
             foreach (AnswerRR a in response.Answers)
             {
-                if (a.Class == Heijden.DNS.Class.IN && a.RECORD is RecordPTR ptr)
+                if (a.RECORD is RecordPTR ptr)
                 {
                     string serviceType = a.NAME;
                     string name = FirstToken(ptr.PTRDNAME);
                     if (name != null && serviceType != null)
                     {
-                        Browser.Log($"OnPacket: name=[{name}], serviceType=[{serviceType}]");
+                        Browser.Log($"OnPacket: serviceType=[{serviceType}], name=[{name}]");
+                        lock (serviceRoot)
+                        {
+                            ServiceCollection collection = LazyCreateServiceType(serviceType);
+                            ServiceInfo info = collection.LazyCreate(name);
+                            info.UpdatePtr(ptr);
+                        }
                     }
                 }
             }
+
+            /*
 
             foreach (AuthorityRR a in response.Authorities)
             {
@@ -110,7 +131,6 @@ namespace CosineKitty.ZeroConfigWatcher
                 }
             }
 
-            /*
 
             foreach (AdditionalRR a in response.Additionals)
             {
@@ -118,16 +138,33 @@ namespace CosineKitty.ZeroConfigWatcher
 
             */
         }
+
+        private ServiceCollection LazyCreateServiceType(string serviceType)
+        {
+            if (!serviceRoot.TryGetValue(serviceType, out ServiceCollection collection))
+                serviceRoot.Add(serviceType, collection = new ServiceCollection());
+
+            return collection;
+        }
     }
 
     internal class ServiceCollection
     {
         public readonly Dictionary<string, ServiceInfo> ServiceTable = new();
+
+        public ServiceInfo LazyCreate(string name)
+        {
+            if (!ServiceTable.TryGetValue(name, out ServiceInfo info))
+                ServiceTable.Add(name, info = new ServiceInfo());
+
+            return info;
+        }
     }
 
     internal class ServiceInfo
     {
         public ServiceFact<RecordSRV> srv;
+        public ServiceFact<RecordPTR> ptr;
 
         public void UpdateSrv(RecordSRV record)
         {
@@ -136,6 +173,11 @@ namespace CosineKitty.ZeroConfigWatcher
                 srv = new ServiceFact<RecordSRV>(record);
                 Browser.Log($"UpdateSrv: record = {record}");
             }
+        }
+
+        public void UpdatePtr(RecordPTR record)
+        {
+            ptr = new ServiceFact<RecordPTR>(record);
         }
     }
 
