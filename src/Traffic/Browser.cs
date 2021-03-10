@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
+using System.Timers;
 using Heijden.DNS;
 
 namespace CosineKitty.ZeroConfigWatcher
@@ -8,7 +10,8 @@ namespace CosineKitty.ZeroConfigWatcher
     public class Browser : IDisposable
     {
         private readonly TrafficMonitor monitor;
-        private readonly Dictionary<string, ServiceCollection> serviceRoot = new ();
+        private readonly Dictionary<string, ServiceCollection> serviceRoot = new();
+        private System.Timers.Timer expirationTimer;
 
         public static IDebugLogger Logger;
 
@@ -22,10 +25,40 @@ namespace CosineKitty.ZeroConfigWatcher
         {
             this.monitor = monitor;
             monitor.OnReceive += OnPacket;
+
+            expirationTimer = new System.Timers.Timer();
+            expirationTimer.Interval = 1000.0;
+            expirationTimer.Elapsed += OnExpirationTimer;
+            expirationTimer.AutoReset = true;
+            expirationTimer.Enabled = true;
+        }
+
+        private void OnExpirationTimer(object sender, ElapsedEventArgs e)
+        {
+            lock (serviceRoot)
+            {
+                foreach (var pair in serviceRoot)
+                {
+                    string serviceType = pair.Key;
+                    ServiceCollection collection = pair.Value;
+
+                    string[] obsoleteNames = collection.ServiceTable
+                        .Where(kv => kv.Value.IsExpired())
+                        .Select(kv => kv.Key)
+                        .ToArray();
+
+                    foreach (string name in obsoleteNames)
+                    {
+                        Browser.Log($"OnExpirationTimer: deleting [{name}] from [{serviceType}]");
+                        collection.ServiceTable.Remove(name);
+                    }
+                }
+            }
         }
 
         public void Dispose()
         {
+            expirationTimer.Enabled = false;
             monitor.OnReceive -= OnPacket;
         }
 
@@ -41,8 +74,13 @@ namespace CosineKitty.ZeroConfigWatcher
             {
                 if (serviceRoot.TryGetValue(serviceType, out ServiceCollection collection))
                 {
-                    foreach (string name in collection.ServiceTable.Keys)
-                        list.Add(new ServiceBrowseResult(name, serviceType));
+                    foreach (var kv in collection.ServiceTable)
+                    {
+                        string name = kv.Key;
+                        ServiceInfo info = kv.Value;
+                        if (info.ptr != null)
+                            list.Add(new ServiceBrowseResult(name, serviceType));
+                    }
                 }
             }
             return list.ToArray();
@@ -179,6 +217,11 @@ namespace CosineKitty.ZeroConfigWatcher
         {
             ptr = new ServiceFact<RecordPTR>(record);
         }
+
+        public bool IsExpired()
+        {
+            return (ptr != null) && (ptr.RemainingLifeInSeconds() < 0.0);
+        }
     }
 
     internal class ServiceFact<RecordType> where RecordType : Record
@@ -188,7 +231,14 @@ namespace CosineKitty.ZeroConfigWatcher
 
         public ServiceFact(RecordType record)
         {
+            if (record == null)
+                throw new ArgumentException("Null record not allowed", nameof(record));
             Record = record;
+        }
+
+        public double RemainingLifeInSeconds()
+        {
+            return (double)Record.RR.TTL - Elapsed.Elapsed.TotalSeconds;
         }
     }
 }
