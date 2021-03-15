@@ -79,10 +79,33 @@ namespace CosineKitty.ZeroConfigWatcher
             monitor.OnReceive -= OnPacket;
         }
 
+        public string[] ServiceTypeList()
+        {
+            lock (serviceRoot)
+                return serviceRoot.Keys.Select(st => RemoveLocalSuffix(st)).OrderBy(st => st).ToArray();
+        }
+
+        private const string LocalSuffix = ".local.";
+
+        public static string RemoveLocalSuffix(string s)
+        {
+            if (s != null && s.EndsWith(LocalSuffix))
+                return s.Substring(0, s.Length - LocalSuffix.Length);
+
+            return s;
+        }
+
+        public static string AddLocalSuffix(string s)
+        {
+            if (s != null && !s.EndsWith(LocalSuffix))
+                return s + LocalSuffix;
+
+            return s;
+        }
+
         public ServiceBrowseResult[] Browse(string serviceType)
         {
-            if (!serviceType.EndsWith(".local."))
-                serviceType += ".local.";
+            serviceType = AddLocalSuffix(serviceType);
 
             // FIXFIXFIX: active browsing: send out packets to query for this service type, if needed.
 
@@ -108,7 +131,7 @@ namespace CosineKitty.ZeroConfigWatcher
             if (browseResult != null && !string.IsNullOrEmpty(browseResult.Name) && !string.IsNullOrEmpty(browseResult.ServiceType))
             {
                 string name = browseResult.Name;
-                string serviceType = browseResult.ServiceType + ".local.";
+                string serviceType = AddLocalSuffix(browseResult.ServiceType);
 
                 // FIXFIXFIX: send out packets if needed to initiate discovery.
                 // For now we use passive resolution only: we either already know the answer or we don't.
