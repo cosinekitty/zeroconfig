@@ -1,10 +1,8 @@
-using System;
 using System.Collections.Generic;
-using System.Text;
 
 namespace Heijden.DNS
 {
-    class Request
+    public class Request
 	{
 		public Header header;
         readonly List<Question> questions;

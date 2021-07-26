@@ -1,7 +1,5 @@
 using System;
-using System.IO;
 using System.Collections.Generic;
-using System.Net;
 using System.Text;
 
 namespace Heijden.DNS
@@ -65,7 +63,7 @@ namespace Heijden.DNS
 		public QType QType;
 		public QClass QClass;
 
-		public Question(string QName,QType QType,QClass QClass)
+		public Question(string QName, QType QType, QClass QClass)
 		{
 			this.QName = QName;
 			this.QType = QType;

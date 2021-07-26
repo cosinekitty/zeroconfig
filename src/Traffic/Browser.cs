@@ -103,12 +103,27 @@ namespace CosineKitty.ZeroConfigWatcher
             return s;
         }
 
+        public void RequestServiceTypes()
+        {
+            // Broadcast a request for all service types to be announced.
+            // This probably only needs to be called one time at startup.
+            RequestBrowse("_services._dns-sd._udp.local.");
+        }
+
+        public void RequestBrowse(string serviceType)
+        {
+            // Broadcast a request for all services of the given type to
+            // announce themselves. This probably only needs to be called
+            // once at startup.
+            serviceType = AddLocalSuffix(serviceType);
+            var request = new Request();
+            request.AddQuestion(new Question(serviceType, QType.PTR, QClass.IN));
+            monitor.Broadcast(request);
+        }
+
         public ServiceBrowseResult[] Browse(string serviceType)
         {
             serviceType = AddLocalSuffix(serviceType);
-
-            // FIXFIXFIX: active browsing: send out packets to query for this service type, if needed.
-
             var list = new List<ServiceBrowseResult>();
             lock (serviceRoot)
             {

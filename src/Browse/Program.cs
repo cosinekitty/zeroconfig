@@ -114,6 +114,12 @@ r <index>
                     continue;
                 }
 
+                if (command == "S")
+                {
+                    browser.RequestServiceTypes();
+                    continue;
+                }
+
                 if (command == "s")
                 {
                     foreach (string st in browser.ServiceTypeList())

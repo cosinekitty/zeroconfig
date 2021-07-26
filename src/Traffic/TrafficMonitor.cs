@@ -4,6 +4,7 @@ using System.Net;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
 using System.Threading;
+using Heijden.DNS;
 
 namespace CosineKitty.ZeroConfigWatcher
 {
@@ -54,6 +55,19 @@ namespace CosineKitty.ZeroConfigWatcher
             }
         }
 
+        public void Broadcast(Request request)
+        {
+            var broadcastEndpoint = new IPEndPoint(IPAddress.Parse("224.0.0.251"), 5353);
+            lock (mutex)
+            {
+                foreach (UdpClient client in clientList)
+                {
+                    byte[] datagram = request.Data;
+                    client.BeginSend(datagram, datagram.Length, broadcastEndpoint, null, null);
+                }
+            }
+        }
+
         private static UdpClient[] MakeClientList()
         {
             NetworkInterface[] adapterList = GetMulticastAdapterList();
@@ -66,6 +80,8 @@ namespace CosineKitty.ZeroConfigWatcher
                 socket.SetSocketOption(SocketOptionLevel.IP, SocketOptionName.MulticastInterface, IPAddress.HostToNetworkOrder(adapterIndex));
                 client.ExclusiveAddressUse = false;
                 socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
+                //socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveTimeout, 2000);
+                //client.ExclusiveAddressUse = false;
                 var localEp = new IPEndPoint(IPAddress.Any, 5353);
                 socket.Bind(localEp);
                 var multicastAddress = IPAddress.Parse("224.0.0.251");
