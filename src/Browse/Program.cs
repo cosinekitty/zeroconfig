@@ -2,7 +2,6 @@
 using System.IO;
 using System.Net;
 using CosineKitty.ZeroConfigWatcher;
-using Heijden.DNS;
 
 namespace Browse
 {
@@ -42,6 +41,42 @@ namespace Browse
 
     class Program
     {
+        const string HelpText = @"
+
+q
+    Quit this program.
+
+h
+    Print this help screen.
+
+S
+    Broadcast a request to ask for all available service types.
+
+s
+    List service types discovered so far.
+
+B _type._protocol
+    Broadcast a request to browse for the given protocol.
+    For example, 'B _raop._tcp' asks for all AirPlay speakers
+    on the local network to announce their presence.
+
+b _type._protocol
+    Display services discovered so far that belong to the specified protocol.
+    For example, 'b _raop._tcp' displays all AirPlay speakers
+    that have announced their presence since this program started running,
+    whether we asked for it (via the 'B' command), or they did so for
+    some other reason (self-update or some other program asked).
+
+R <index>
+    Broadcast a request to resolve the service with the given index in the
+    list printed by the 'b' command.
+
+r <index>
+    Display latest resolution of the service with the given index in the list
+    printed by the 'b' command.
+
+";
+
         static void Print(string message)
         {
             Browser.Log("# " + message);
@@ -60,7 +95,7 @@ namespace Browse
             Print("");
             while (true)
             {
-                Print("Enter command (q = quit, s = service types, b _type._protocol = browse, r <index> = resolve)");
+                Print("Enter command (q = quit, h = help)");
                 Console.Write("> ");
                 Console.Out.Flush();
                 string command = Console.ReadLine();
@@ -73,11 +108,16 @@ namespace Browse
                 if (command == "q")
                     break;
 
+                if (command == "h")
+                {
+                    Console.WriteLine(HelpText);
+                    continue;
+                }
+
                 if (command == "s")
                 {
                     foreach (string st in browser.ServiceTypeList())
                         Print(st);
-
                     continue;
                 }
 
