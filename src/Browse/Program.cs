@@ -127,6 +127,13 @@ r <index>
                     continue;
                 }
 
+                if (command.StartsWith("B"))
+                {
+                    string serviceType = command.Substring(1).Trim();
+                    browser.RequestBrowse(serviceType);
+                    continue;
+                }
+
                 if (command.StartsWith("b"))
                 {
                     string serviceType = command.Substring(1).Trim();
@@ -136,7 +143,7 @@ r <index>
                     continue;
                 }
 
-                if (command.StartsWith("r"))
+                if (command.StartsWith("r") || command.StartsWith("R"))
                 {
                     if (browseList.Length == 0)
                     {
@@ -147,20 +154,28 @@ r <index>
                         string indexText = command.Substring(1).Trim();
                         if (int.TryParse(indexText, out int index) && (index >= 0) && (index < browseList.Length))
                         {
-                            ServiceResolveResult result = browser.Resolve(browseList[index], 5);
-                            if (result == null)
+                            if (command.StartsWith("r"))
                             {
-                                Print("RESOLVE FALIURE.");
+                                ServiceResolveResult result = browser.Resolve(browseList[index], 5);
+                                if (result == null)
+                                {
+                                    Print("RESOLVE FALIURE.");
+                                }
+                                else
+                                {
+                                    Print($"name = {result.Name}");
+                                    Print($"host = {result.HostName}");
+                                    foreach (IPEndPoint ep in result.IpEndpointList)
+                                        Print($"endpoint = {ep}");
+                                    foreach (var kv in result.TxtRecord)
+                                        Print($"TXT \"{kv.Key}={kv.Value}\"");
+                                    Print("");
+                                }
                             }
-                            else
+                            else // "R"
                             {
-                                Print($"name = {result.Name}");
-                                Print($"host = {result.HostName}");
-                                foreach (IPEndPoint ep in result.IpEndpointList)
-                                    Print($"endpoint = {ep}");
-                                foreach (var kv in result.TxtRecord)
-                                    Print($"TXT \"{kv.Key}={kv.Value}\"");
-                                Print("");
+                                // !!! RequestResolve
+                                Print("RequestResolve not implemented. (Do we need it?)");
                             }
                         }
                         else
