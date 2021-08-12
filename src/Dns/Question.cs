@@ -118,7 +118,6 @@ namespace Heijden.DNS
 			return BitConverter.GetBytes(Header.HostToNetworkOrder((short)sValue));
 		}
 
-
 		public override string ToString()
 		{
 			return string.Format("{0,-32}\t{1}\t{2}", QName, QClass, QType);

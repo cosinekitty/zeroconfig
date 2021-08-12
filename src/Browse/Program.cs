@@ -174,7 +174,6 @@ r <index>
                             }
                             else // "R"
                             {
-                                // !!! RequestResolve
                                 Print("RequestResolve not implemented. (Do we need it?)");
                             }
                         }
