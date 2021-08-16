@@ -122,6 +122,15 @@ namespace Heijden.DNS
 			RECORD.RR = this;
 		}
 
+		public void Write(RecordWriter rw)
+		{
+			rw.WriteString(NAME);
+			rw.WriteUint16((UInt16)Type);
+			rw.WriteUint16((UInt16)Class);
+			rw.WriteUint32(TTL);
+			rw.WriteRecord(RECORD);
+		}
+
 		public override string ToString()
 		{
 			return string.Format("name=[{0}] TTL={1} class={2} type={3} record=[{4}]",

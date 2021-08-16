@@ -1,4 +1,4 @@
-// Stuff records are made of
+using System.Collections.Generic;
 
 namespace Heijden.DNS
 {
@@ -8,5 +8,7 @@ namespace Heijden.DNS
 		/// The Resource Record this RDATA record belongs to
 		/// </summary>
 		public RR RR;
+
+		public abstract void Write(RecordWriter rw);
 	}
 }

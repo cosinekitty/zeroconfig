@@ -20,11 +20,11 @@ namespace Heijden.DNS
 {
     public class RecordA : Record
 	{
+		public byte[] data = new byte[4];
         public IPAddress Address;
 
 		public RecordA(RecordReader rr)
 		{
-            var data = new byte[4];
             data[0] = rr.ReadByte();
             data[1] = rr.ReadByte();
             data[2] = rr.ReadByte();
@@ -35,6 +35,14 @@ namespace Heijden.DNS
 		public override string ToString()
 		{
 			return Address.ToString();
+		}
+
+		public override void Write(RecordWriter rw)
+		{
+			rw.WriteByte(data[0]);
+			rw.WriteByte(data[1]);
+			rw.WriteByte(data[2]);
+			rw.WriteByte(data[3]);
 		}
 	}
 }

@@ -33,5 +33,10 @@ namespace Heijden.DNS
 		{
 			return PTRDNAME;
 		}
+
+		public override void Write(RecordWriter rw)
+		{
+			rw.WriteString(PTRDNAME);
+		}
 	}
 }

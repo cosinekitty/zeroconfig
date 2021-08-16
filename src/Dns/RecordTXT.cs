@@ -1,6 +1,6 @@
-using System;
 using System.Text;
 using System.Collections.Generic;
+using System.Linq;
 
 #region Rfc info
 /*
@@ -39,6 +39,18 @@ namespace Heijden.DNS
             }
         }
 
+		public RecordTXT(Dictionary<string, string> dict)
+		{
+			TXT = dict.Select(kv => kv.Key + "=" + kv.Value).ToList();
+		}
+
+		public override void Write(RecordWriter rw)
+		{
+			if (TXT != null)
+				foreach (string s in TXT)
+					rw.WriteString(s);
+		}
+
 		public override string ToString()
 		{
 			StringBuilder sb = new StringBuilder();
@@ -49,6 +61,5 @@ namespace Heijden.DNS
 			}
 			return sb.ToString();
 		}
-
 	}
 }

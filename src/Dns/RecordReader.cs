@@ -105,7 +105,7 @@ namespace Heijden.DNS
 		{
 			short length = ReadByte();
 			var bytes = new List<byte>();
-			for (int i=0;i<length;i++)
+			for (int i=0; i<length; i++)
 				bytes.Add(ReadByte());
 			return Encoding.UTF8.GetString(bytes.ToArray(), 0, bytes.Count);
 		}

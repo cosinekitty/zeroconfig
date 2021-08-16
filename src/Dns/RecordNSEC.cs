@@ -15,6 +15,13 @@ namespace Heijden.DNS
             RDATA = rr.ReadBytes(RDLENGTH);
         }
 
+        public override void Write(RecordWriter rw)
+        {
+            if (RDATA != null)
+                for (int i = 0; i < RDATA.Length; ++i)
+                    rw.WriteByte(RDATA[i]);
+        }
+
         public override string ToString()
         {
             if (RDATA == null)
