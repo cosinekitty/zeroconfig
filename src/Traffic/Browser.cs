@@ -250,12 +250,19 @@ namespace CosineKitty.ZeroConfigWatcher
                 string name = FirstToken(ptr.PTRDNAME);
                 if (name != null && serviceType != null)
                 {
-                    Browser.Log($"Process: serviceType=[{serviceType}], name=[{name}]");
+                    Browser.Log($"Process: serviceType=[{serviceType}], PTRDNAME=[{ptr.PTRDNAME}]");
                     lock (serviceRoot)
                     {
-                        ServiceCollection collection = LazyCreateServiceType(serviceType);
-                        ServiceInfo info = collection.LazyCreate(name);
-                        info.UpdatePtr(ptr);
+                        if (serviceType == "_services._dns-sd._udp.local.")
+                        {
+                            LazyCreateServiceType(ptr.PTRDNAME);
+                        }
+                        else
+                        {
+                            ServiceCollection collection = LazyCreateServiceType(serviceType);
+                            ServiceInfo info = collection.LazyCreate(name);
+                            info.UpdatePtr(ptr);
+                        }
                     }
                 }
             }
