@@ -72,7 +72,34 @@ namespace CosineKitty.ZeroConfigWatcher.UnitTests
         static Test[] UnitTests = new Test[]
         {
             new Test("ReadWrite_A", ReadWrite_A),
+            new Test("ReadWrite_PTR", ReadWrite_PTR),
         };
+
+        static int Fail(string message)
+        {
+            Console.WriteLine("ERROR: {0}", message);
+            return 1;
+        }
+
+        static int CheckDeserializedPacket(RR packet, RR copy)
+        {
+            if (copy.NAME != packet.NAME)
+                return Fail($"copy.NAME=[{copy.NAME}] does not match packet.NAME=[{packet.NAME}].");
+
+            if (copy.Type != packet.Type)
+                return Fail($"copy.Type has incorrect value {copy.Type}.");
+
+            if (copy.Class != packet.Class)
+                return Fail($"copy.Class has incorrect value {copy.Class}.");
+
+            if (copy.TTL != packet.TTL)
+                return Fail($"copy.TTL has incorrect value {copy.TTL}.");
+
+            if (copy.RECORD == null)
+                return Fail("copy.RECORD is null.");
+
+            return 0;
+        }
 
         static int ReadWrite_A()
         {
@@ -92,35 +119,8 @@ namespace CosineKitty.ZeroConfigWatcher.UnitTests
             var reader = new RecordReader(data);
             var copy = new RR(reader);
 
-            if (copy.NAME != DomainName)
-            {
-                Console.WriteLine($"ERROR(ReadWrite_A): copy.NAME [{copy.NAME}] does not match DomainName [{DomainName}].");
+            if (0 != CheckDeserializedPacket(packet, copy))
                 return 1;
-            }
-
-            if (copy.Type != Heijden.DNS.Type.A)
-            {
-                Console.WriteLine($"ERROR(ReadWrite_A): copy.Type has incorrect value {copy.Type}.");
-                return 1;
-            }
-
-            if (copy.Class != Class.IN)
-            {
-                Console.WriteLine($"ERROR(ReadWrite_A): copy.Class has incorrect value {copy.Class}.");
-                return 1;
-            }
-
-            if (copy.TTL != TimeToLive)
-            {
-                Console.WriteLine($"ERROR(ReadWrite_A): copy.TTL has incorrect value {copy.TTL}.");
-                return 1;
-            }
-
-            if (copy.RECORD == null)
-            {
-                Console.WriteLine($"ERROR(ReadWrite_A): copy.RECORD is null.");
-                return 1;
-            }
 
             // Verify the parsed packet matches the original packet in every detail.
             if (copy.RECORD is RecordA cr)
@@ -128,14 +128,47 @@ namespace CosineKitty.ZeroConfigWatcher.UnitTests
                 string ip1 = rec.ToString();
                 string ip2 = cr.ToString();
                 if (ip1 != ip2)
+                    return Fail($"ip1={ip1} does not match ip2={ip2}");
+                return 0;
+            }
+
+            return Fail($"Reconstituted record is of incorrect type {copy.RECORD.GetType()}");
+        }
+
+        static int ReadWrite_PTR()
+        {
+            const string DomainName = "phony.example.com.";
+            const uint TimeToLive = 3600;
+
+            // Create a "PTR" record.
+            const string PtrName = "balogna.example.com.";
+            var rec = new RecordPTR(PtrName);
+            var packet = new RR(DomainName, Heijden.DNS.Type.PTR, Class.IN, TimeToLive, rec);
+
+            // Serialize the "PTR" record as binary data.
+            var writer = new RecordWriter();
+            packet.Write(writer);
+            byte[] data = writer.GetData();
+
+            // Parse the binary data back as a packet.
+            var reader = new RecordReader(data);
+            var copy = new RR(reader);
+
+            if (0 != CheckDeserializedPacket(packet, copy))
+                return 1;
+
+            // Verify the parsed packet matches the original packet in every detail.
+            if (copy.RECORD is RecordPTR cr)
+            {
+                if (cr.PTRDNAME != PtrName)
                 {
-                    Console.WriteLine($"ERROR(ReadWrite_A): ip1={ip1} does not match ip2={ip2}");
+                    Console.WriteLine($"ERROR: cr.PTRDNAME={cr.PTRDNAME} does not match PtrName={PtrName}");
                     return 1;
                 }
                 return 0;
             }
 
-            Console.WriteLine($"ERROR(ReadWrite_A): Reconstituted record is of incorrect type {copy.RECORD.GetType()}");
+            Console.WriteLine($"ERROR: Reconstituted record is of incorrect type {copy.RECORD.GetType()}");
             return 1;
         }
     }

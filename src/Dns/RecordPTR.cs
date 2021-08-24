@@ -29,6 +29,11 @@ namespace Heijden.DNS
 			PTRDNAME = rr.ReadDomainName();
 		}
 
+		public RecordPTR(string dname)
+		{
+			PTRDNAME = dname;
+		}
+
 		public override string ToString()
 		{
 			return PTRDNAME;
