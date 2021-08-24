@@ -47,14 +47,48 @@ namespace Heijden.DNS
                 if (data.Length > 63)
                     throw new Exception($"Label [{label}] is longer than 63 bytes.");
                 byte length = (byte)data.Length;
-                // FIXFIXFIX: exploit name compression when the label exists earlier in this packet.
-                // length |= 0xc0, etc...
-                buffer.Add(length);
-                for (int i = 0; i < data.Length; ++i)
-                    buffer.Add(data[i]);
+
+                // See if we can exploit compression by searching for the same byte pattern
+                // earlier in this same message.
+                int position = FindMatchingByteSequence(data);
+                if (position < 0 || position > 0x3fff)
+                {
+                    // No match, or position is not representable, so emit entire label sequence here.
+                    buffer.Add(length);
+                    for (int i = 0; i < data.Length; ++i)
+                        buffer.Add(data[i]);
+                }
+                else
+                {
+                    // Save space by emitting compressed data here.
+                    buffer.Add((byte)(0xc0 | (position >> 8)));
+                    buffer.Add((byte)(position));
+                }
             }
             // Terminate the label list with a 0-length byte.
             buffer.Add(0);
+        }
+
+        private int FindMatchingByteSequence(byte[] data)
+        {
+            if (data.Length < 3)
+                return -1;  // cannot make this data any smaller by referring to earlier strings
+
+            // Search the first 0x3fff bytes for [length, data...] matching bytes.
+            int length = Math.Min(0x3fff, buffer.Count);
+            for (int position = 0; position + data.Length + 1 <= length; ++position)
+            {
+                if (buffer[position] == data.Length)
+                {
+                    bool match = true;
+                    for (int index = 0; match && index < data.Length; ++index)
+                        if (buffer[position + 1 + index] != data[index])
+                            match = false;
+                    if (match)
+                        return position;
+                }
+            }
+            return -1;  // no match found
         }
 
         public void WriteString(string s)
