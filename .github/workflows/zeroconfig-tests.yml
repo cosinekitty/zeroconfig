@@ -1,0 +1,13 @@
+name: ZeroConfig Unit Tests
+on: [push]
+jobs:
+  ZeroConfig:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Init dotnet core
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: 5.0.x
+    - name: Test ZeroConfig
+      run: cd src/UnitTests && ./run && ./verify_clean

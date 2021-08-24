@@ -1,0 +1,11 @@
+#!/bin/bash
+Fail()
+{
+    echo "ERROR($0): $1"
+    exit 1
+}
+
+dotnet run -- all || Fail "Error running unit tests."
+
+cat pass.txt
+exit 0
