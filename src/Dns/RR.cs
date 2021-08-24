@@ -3,177 +3,177 @@ using System.Diagnostics;
 
 namespace Heijden.DNS
 {
-	#region RFC info
-	/*
-	3.2. RR definitions
+    #region RFC info
+    /*
+    3.2. RR definitions
 
-	3.2.1. Format
+    3.2.1. Format
 
-	All RRs have the same top level format shown below:
+    All RRs have the same top level format shown below:
 
-										1  1  1  1  1  1
-		  0  1  2  3  4  5  6  7  8  9  0  1  2  3  4  5
-		+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
-		|                                               |
-		/                                               /
-		/                      NAME                     /
-		|                                               |
-		+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
-		|                      TYPE                     |
-		+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
-		|                     CLASS                     |
-		+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
-		|                      TTL                      |
-		|                                               |
-		+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
-		|                   RDLENGTH                    |
-		+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--|
-		/                     RDATA                     /
-		/                                               /
-		+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+                                        1  1  1  1  1  1
+          0  1  2  3  4  5  6  7  8  9  0  1  2  3  4  5
+        +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+        |                                               |
+        /                                               /
+        /                      NAME                     /
+        |                                               |
+        +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+        |                      TYPE                     |
+        +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+        |                     CLASS                     |
+        +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+        |                      TTL                      |
+        |                                               |
+        +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+        |                   RDLENGTH                    |
+        +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--|
+        /                     RDATA                     /
+        /                                               /
+        +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
 
 
-	where:
+    where:
 
-	NAME            an owner name, i.e., the name of the node to which this
-					resource record pertains.
+    NAME            an owner name, i.e., the name of the node to which this
+                    resource record pertains.
 
-	TYPE            two octets containing one of the RR TYPE codes.
+    TYPE            two octets containing one of the RR TYPE codes.
 
-	CLASS           two octets containing one of the RR CLASS codes.
+    CLASS           two octets containing one of the RR CLASS codes.
 
-	TTL             a 32 bit signed integer that specifies the time interval
-					that the resource record may be cached before the source
-					of the information should again be consulted.  Zero
-					values are interpreted to mean that the RR can only be
-					used for the transaction in progress, and should not be
-					cached.  For example, SOA records are always distributed
-					with a zero TTL to prohibit caching.  Zero values can
-					also be used for extremely volatile data.
+    TTL             a 32 bit signed integer that specifies the time interval
+                    that the resource record may be cached before the source
+                    of the information should again be consulted.  Zero
+                    values are interpreted to mean that the RR can only be
+                    used for the transaction in progress, and should not be
+                    cached.  For example, SOA records are always distributed
+                    with a zero TTL to prohibit caching.  Zero values can
+                    also be used for extremely volatile data.
 
-	RDLENGTH        an unsigned 16 bit integer that specifies the length in
-					octets of the RDATA field.
+    RDLENGTH        an unsigned 16 bit integer that specifies the length in
+                    octets of the RDATA field.
 
-	RDATA           a variable length string of octets that describes the
-					resource.  The format of this information varies
-					according to the TYPE and CLASS of the resource record.
-	*/
-	#endregion
+    RDATA           a variable length string of octets that describes the
+                    resource.  The format of this information varies
+                    according to the TYPE and CLASS of the resource record.
+    */
+    #endregion
 
-	/// <summary>
-	/// Resource Record (rfc1034 3.6.)
-	/// </summary>
+    /// <summary>
+    /// Resource Record (rfc1034 3.6.)
+    /// </summary>
     [DebuggerDisplay("Name = {NAME} TTL={TTL} Class={Class} Type = {Type} Record={RECORD}")]
-	public class RR
-	{
-		/// <summary>
-		/// The name of the node to which this resource record pertains
-		/// </summary>
-		public string NAME;
+    public class RR
+    {
+        /// <summary>
+        /// The name of the node to which this resource record pertains
+        /// </summary>
+        public string NAME;
 
-		/// <summary>
-		/// Specifies type of resource record
-		/// </summary>
-		public Type Type;
+        /// <summary>
+        /// Specifies type of resource record
+        /// </summary>
+        public Type Type;
 
-		/// <summary>
-		/// Specifies type class of resource record, mostly IN but can be CS, CH or HS 
-		/// </summary>
-		public Class Class;
+        /// <summary>
+        /// Specifies type class of resource record, mostly IN but can be CS, CH or HS 
+        /// </summary>
+        public Class Class;
 
-		/// <summary>
-		/// Time to live, the time interval that the resource record may be cached
-		/// </summary>
-		public uint TTL
-		{
-			get
-			{
-				return (uint)Math.Max(0, m_TTL - TimeLived);
-			}
-			set
-			{
-				m_TTL = value;
-			}
-		}
+        /// <summary>
+        /// Time to live, the time interval that the resource record may be cached
+        /// </summary>
+        public uint TTL
+        {
+            get
+            {
+                return (uint)Math.Max(0, m_TTL - TimeLived);
+            }
+            set
+            {
+                m_TTL = value;
+            }
+        }
 
-	    uint m_TTL;
+        uint m_TTL;
 
-		/// <summary>
-		/// Total packet length in bytes.
-		/// </summary>
-		public ushort RDLENGTH;
+        /// <summary>
+        /// Total packet length in bytes.
+        /// </summary>
+        public ushort RDLENGTH;
 
-		/// <summary>
-		/// One of the Record* classes
-		/// </summary>
-		public Record RECORD;
+        /// <summary>
+        /// One of the Record* classes
+        /// </summary>
+        public Record RECORD;
 
-		public int TimeLived;
+        public int TimeLived;
 
-		public RR(RecordReader rr)
-		{
-			TimeLived = 0;
-			NAME = rr.ReadDomainName();
-			Type = (Type)rr.ReadUInt16();
-			Class = (Class)rr.ReadUInt16();
-			TTL = rr.ReadUInt32();
-			RDLENGTH = rr.ReadUInt16();
-			RECORD = rr.ReadRecord(Type, RDLENGTH);
-			RECORD.RR = this;
-		}
+        public RR(RecordReader rr)
+        {
+            TimeLived = 0;
+            NAME = rr.ReadDomainName();
+            Type = (Type)rr.ReadUInt16();
+            Class = (Class)rr.ReadUInt16();
+            TTL = rr.ReadUInt32();
+            RDLENGTH = rr.ReadUInt16();
+            RECORD = rr.ReadRecord(Type, RDLENGTH);
+            RECORD.RR = this;
+        }
 
-		public RR(string name, Type type, Class cls, UInt32 ttl, Record record)
-		{
-			TimeLived = 0;
-			NAME = name;
-			Type = type;
-			Class = cls;
-			TTL = ttl;
-			RECORD = record;
-			RECORD.RR = this;
-		}
+        public RR(string name, Type type, Class cls, UInt32 ttl, Record record)
+        {
+            TimeLived = 0;
+            NAME = name;
+            Type = type;
+            Class = cls;
+            TTL = ttl;
+            RECORD = record;
+            RECORD.RR = this;
+        }
 
-		public void Write(RecordWriter rw)
-		{
-			rw.WriteDomainName(NAME);
-			rw.WriteUint16((UInt16)Type);
-			rw.WriteUint16((UInt16)Class);
-			rw.WriteUint32(TTL);
-			rw.WriteRecord(RECORD);
-		}
+        public void Write(RecordWriter rw)
+        {
+            rw.WriteDomainName(NAME);
+            rw.WriteUint16((UInt16)Type);
+            rw.WriteUint16((UInt16)Class);
+            rw.WriteUint32(TTL);
+            rw.WriteRecord(RECORD);
+        }
 
-		public override string ToString()
-		{
-			return string.Format("name=[{0}] TTL={1} class={2} type={3} record=[{4}]",
-				NAME,
-				TTL,
-				Class,
-				Type,
-				RECORD);
-		}
-	}
+        public override string ToString()
+        {
+            return string.Format("name=[{0}] TTL={1} class={2} type={3} record=[{4}]",
+                NAME,
+                TTL,
+                Class,
+                Type,
+                RECORD);
+        }
+    }
 
     public class AnswerRR : RR
-	{
-		public AnswerRR(RecordReader br)
-			: base(br)
-		{
-		}
-	}
+    {
+        public AnswerRR(RecordReader br)
+            : base(br)
+        {
+        }
+    }
 
     public class AuthorityRR : RR
-	{
-		public AuthorityRR(RecordReader br)
-			: base(br)
-		{
-		}
-	}
+    {
+        public AuthorityRR(RecordReader br)
+            : base(br)
+        {
+        }
+    }
 
     public class AdditionalRR : RR
-	{
-		public AdditionalRR(RecordReader br)
-			: base(br)
-		{
-		}
-	}
+    {
+        public AdditionalRR(RecordReader br)
+            : base(br)
+        {
+        }
+    }
 }

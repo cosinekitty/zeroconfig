@@ -4,14 +4,14 @@ using System.Linq;
 namespace Heijden.DNS
 {
     public class RecordUnknown : Record
-	{
-		public byte[] RDATA;
-		public RecordUnknown(RecordReader rr)
-		{
-			// re-read length
-			ushort RDLENGTH = rr.ReadUInt16(-2);
-			RDATA = rr.ReadBytes(RDLENGTH);
-		}
+    {
+        public byte[] RDATA;
+        public RecordUnknown(RecordReader rr)
+        {
+            // re-read length
+            ushort RDLENGTH = rr.ReadUInt16(-2);
+            RDATA = rr.ReadBytes(RDLENGTH);
+        }
 
         public override void Write(RecordWriter rw)
         {
@@ -26,5 +26,5 @@ namespace Heijden.DNS
                 return "RDATA = null";
             return "RDATA = [" + string.Join(" ", RDATA.Select(b => b.ToString("x2"))) + "]";
         }
-	}
+    }
 }

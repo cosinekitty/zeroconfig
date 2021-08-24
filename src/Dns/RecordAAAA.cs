@@ -12,12 +12,12 @@ using System;
 namespace Heijden.DNS
 {
     public class RecordAAAA : Record
-	{
+    {
         public UInt16[] data = new UInt16[8];
         public string Address;
 
-		public RecordAAAA(RecordReader rr)
-		{
+        public RecordAAAA(RecordReader rr)
+        {
             for (int i = 0; i < 8; ++i)
                 data[i] = rr.ReadUInt16();
 
@@ -30,17 +30,17 @@ namespace Heijden.DNS
                 data[5],
                 data[6],
                 data[7]);
-		}
+        }
 
-		public override string ToString()
-		{
-			return Address;
-		}
+        public override string ToString()
+        {
+            return Address;
+        }
 
         public override void Write(RecordWriter rw)
         {
             for (int i = 0; i < 8; ++i)
                 rw.WriteUint16(data[i]);
         }
-	}
+    }
 }

@@ -23,13 +23,13 @@ depends on the domain where it is found.
 namespace Heijden.DNS
 {
     public class RecordTXT : Record
-	{
-		public List<string> TXT;
+    {
+        public List<string> TXT;
 
-		public RecordTXT(RecordReader rr, int Length)
-		{
-			int pos = rr.Position;
-			TXT = new List<string>();
+        public RecordTXT(RecordReader rr, int Length)
+        {
+            int pos = rr.Position;
+            TXT = new List<string>();
             while (
                 ((rr.Position - pos) < Length) &&
                 (rr.Position < rr.Length)
@@ -39,27 +39,27 @@ namespace Heijden.DNS
             }
         }
 
-		public RecordTXT(Dictionary<string, string> dict)
-		{
-			TXT = dict.Select(kv => kv.Key + "=" + kv.Value).ToList();
-		}
+        public RecordTXT(Dictionary<string, string> dict)
+        {
+            TXT = dict.Select(kv => kv.Key + "=" + kv.Value).ToList();
+        }
 
-		public override void Write(RecordWriter rw)
-		{
-			if (TXT != null)
-				foreach (string s in TXT)
-					rw.WriteString(s);
-		}
+        public override void Write(RecordWriter rw)
+        {
+            if (TXT != null)
+                foreach (string s in TXT)
+                    rw.WriteString(s);
+        }
 
-		public override string ToString()
-		{
-			StringBuilder sb = new StringBuilder();
-			foreach (string txt in TXT)
-			{
-				sb.AppendFormat("TXT \"{0}\"", txt);
-				sb.AppendLine();
-			}
-			return sb.ToString();
-		}
-	}
+        public override string ToString()
+        {
+            StringBuilder sb = new StringBuilder();
+            foreach (string txt in TXT)
+            {
+                sb.AppendFormat("TXT \"{0}\"", txt);
+                sb.AppendLine();
+            }
+            return sb.ToString();
+        }
+    }
 }

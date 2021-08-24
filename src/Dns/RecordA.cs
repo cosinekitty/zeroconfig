@@ -19,42 +19,42 @@ records.
 namespace Heijden.DNS
 {
     public class RecordA : Record
-	{
-		public byte[] data = new byte[4];
+    {
+        public byte[] data = new byte[4];
         public IPAddress Address;
 
-		public RecordA(RecordReader rr)
-		{
+        public RecordA(RecordReader rr)
+        {
             data[0] = rr.ReadByte();
             data[1] = rr.ReadByte();
             data[2] = rr.ReadByte();
             data[3] = rr.ReadByte();
             Address = new IPAddress(data);
-		}
+        }
 
-		public RecordA(byte[] addr)
-		{
-			if (addr == null || addr.Length != 4)
-				throw new ArgumentException("IP address must be 4 bytes.");
+        public RecordA(byte[] addr)
+        {
+            if (addr == null || addr.Length != 4)
+                throw new ArgumentException("IP address must be 4 bytes.");
 
-			data[0] = addr[0];
-			data[1] = addr[1];
-			data[2] = addr[2];
-			data[3] = addr[3];
-			Address = new IPAddress(data);
-		}
+            data[0] = addr[0];
+            data[1] = addr[1];
+            data[2] = addr[2];
+            data[3] = addr[3];
+            Address = new IPAddress(data);
+        }
 
-		public override string ToString()
-		{
-			return Address.ToString();
-		}
+        public override string ToString()
+        {
+            return Address.ToString();
+        }
 
-		public override void Write(RecordWriter rw)
-		{
-			rw.WriteByte(data[0]);
-			rw.WriteByte(data[1]);
-			rw.WriteByte(data[2]);
-			rw.WriteByte(data[3]);
-		}
-	}
+        public override void Write(RecordWriter rw)
+        {
+            rw.WriteByte(data[0]);
+            rw.WriteByte(data[1]);
+            rw.WriteByte(data[2]);
+            rw.WriteByte(data[3]);
+        }
+    }
 }
