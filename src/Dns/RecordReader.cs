@@ -54,7 +54,9 @@ namespace Heijden.DNS
 
 		public UInt16 ReadUInt16()
 		{
-			return (UInt16)(ReadByte() << 8 | ReadByte());
+			byte hi = ReadByte();
+			byte lo = ReadByte();
+			return (UInt16)((hi << 8) | lo);
 		}
 
 		public UInt16 ReadUInt16(int offset)
@@ -65,11 +67,20 @@ namespace Heijden.DNS
 
 		public UInt32 ReadUInt32()
 		{
-			return (UInt32)(ReadUInt16() << 16 | ReadUInt16());
+			UInt16 hi = ReadUInt16();
+			UInt16 lo = ReadUInt16();
+			return (UInt32)((hi << 16) | lo);
 		}
 
 		public string ReadDomainName()
 		{
+            // A domain name is a series of zero or more "labels".
+            // Each label has a length prefix byte.
+            // If the high two bits are set for the length prefix, it indicates
+            // that we are to copy a susbstring from an earlier part of the same packet.
+            // Otherwise, the text bytes follow the length byte.
+            // After each label we append ".".
+
 			var bytes = new List<byte>();
 			int length = 0;
 
@@ -110,7 +121,6 @@ namespace Heijden.DNS
 			return Encoding.UTF8.GetString(bytes.ToArray(), 0, bytes.Count);
 		}
 
-		// changed 28 augustus 2008
 		public byte[] ReadBytes(int intLength)
 		{
 			byte[] list = new byte[intLength];
@@ -139,6 +149,5 @@ namespace Heijden.DNS
 					return new RecordUnknown(this);
 			}
 		}
-
 	}
 }

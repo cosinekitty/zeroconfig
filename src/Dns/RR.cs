@@ -99,7 +99,7 @@ namespace Heijden.DNS
 	    uint m_TTL;
 
 		/// <summary>
-		/// 
+		/// Total packet length in bytes.
 		/// </summary>
 		public ushort RDLENGTH;
 
@@ -122,9 +122,20 @@ namespace Heijden.DNS
 			RECORD.RR = this;
 		}
 
+		public RR(string name, Type type, Class cls, UInt32 ttl, Record record)
+		{
+			TimeLived = 0;
+			NAME = name;
+			Type = type;
+			Class = cls;
+			TTL = ttl;
+			RECORD = record;
+			RECORD.RR = this;
+		}
+
 		public void Write(RecordWriter rw)
 		{
-			rw.WriteString(NAME);
+			rw.WriteDomainName(NAME);
 			rw.WriteUint16((UInt16)Type);
 			rw.WriteUint16((UInt16)Class);
 			rw.WriteUint32(TTL);

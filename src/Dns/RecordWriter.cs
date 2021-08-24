@@ -13,6 +13,11 @@ namespace Heijden.DNS
             get { return buffer.Count; }
         }
 
+        public byte[] GetData()
+        {
+            return buffer.ToArray();
+        }
+
         public void WriteByte(byte x)
         {
             buffer.Add(x);
@@ -32,10 +37,28 @@ namespace Heijden.DNS
             buffer.Add((byte)(x));
         }
 
+        public void WriteDomainName(string s)
+        {
+            // Split the domain name into a series of labels that are delimited by ".".
+            string[] list = s.Split(new char[] {'.'}, StringSplitOptions.RemoveEmptyEntries);
+            foreach (string label in list)
+            {
+                byte[] data = Encoding.UTF8.GetBytes(label);
+                if (data.Length > 63)
+                    throw new Exception($"Label [{label}] is longer than 63 bytes.");
+                byte length = (byte)data.Length;
+                // FIXFIXFIX: exploit name compression when the label exists earlier in this packet.
+                // length |= 0xc0, etc...
+                buffer.Add(length);
+                for (int i = 0; i < data.Length; ++i)
+                    buffer.Add(data[i]);
+            }
+            // Terminate the label list with a 0-length byte.
+            buffer.Add(0);
+        }
+
         public void WriteString(string s)
         {
-            // !!! FIXFIXFIX - support name compression?
-
             byte[] data = Encoding.UTF8.GetBytes(s);
 
             if (data.Length >= 0xc0)

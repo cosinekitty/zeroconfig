@@ -2,6 +2,7 @@
 using System.Globalization;
 using System.Linq;
 using System.Threading;
+using Heijden.DNS;
 
 namespace CosineKitty.ZeroConfigWatcher.UnitTests
 {
@@ -70,12 +71,72 @@ namespace CosineKitty.ZeroConfigWatcher.UnitTests
 
         static Test[] UnitTests = new Test[]
         {
-            new Test("DoNothing", DoNothing),
+            new Test("ReadWrite_A", ReadWrite_A),
         };
 
-        static int DoNothing()
+        static int ReadWrite_A()
         {
-            return 0;
+            const string DomainName = "phony.example.com.";
+            const uint TimeToLive = 3600;
+
+            // Create an "A" record.
+            var rec = new RecordA(new byte[] {192, 168, 1, 123});
+            var packet = new RR(DomainName, Heijden.DNS.Type.A, Class.IN, TimeToLive, rec);
+
+            // Serialize the "A" record as binary data.
+            var writer = new RecordWriter();
+            packet.Write(writer);
+            byte[] data = writer.GetData();
+
+            // Parse the binary data back as a packet.
+            var reader = new RecordReader(data);
+            var copy = new RR(reader);
+
+            if (copy.NAME != DomainName)
+            {
+                Console.WriteLine($"ERROR(ReadWrite_A): copy.NAME [{copy.NAME}] does not match DomainName [{DomainName}].");
+                return 1;
+            }
+
+            if (copy.Type != Heijden.DNS.Type.A)
+            {
+                Console.WriteLine($"ERROR(ReadWrite_A): copy.Type has incorrect value {copy.Type}.");
+                return 1;
+            }
+
+            if (copy.Class != Class.IN)
+            {
+                Console.WriteLine($"ERROR(ReadWrite_A): copy.Class has incorrect value {copy.Class}.");
+                return 1;
+            }
+
+            if (copy.TTL != TimeToLive)
+            {
+                Console.WriteLine($"ERROR(ReadWrite_A): copy.TTL has incorrect value {copy.TTL}.");
+                return 1;
+            }
+
+            if (copy.RECORD == null)
+            {
+                Console.WriteLine($"ERROR(ReadWrite_A): copy.RECORD is null.");
+                return 1;
+            }
+
+            // Verify the parsed packet matches the original packet in every detail.
+            if (copy.RECORD is RecordA cr)
+            {
+                string ip1 = rec.ToString();
+                string ip2 = cr.ToString();
+                if (ip1 != ip2)
+                {
+                    Console.WriteLine($"ERROR(ReadWrite_A): ip1={ip1} does not match ip2={ip2}");
+                    return 1;
+                }
+                return 0;
+            }
+
+            Console.WriteLine($"ERROR(ReadWrite_A): Reconstituted record is of incorrect type {copy.RECORD.GetType()}");
+            return 1;
         }
     }
 }

@@ -85,7 +85,7 @@ namespace Heijden.DNS
             rw.WriteUint16(PRIORITY);
             rw.WriteUint16(WEIGHT);
             rw.WriteUint16(PORT);
-            rw.WriteString(TARGET);
+            rw.WriteDomainName(TARGET);
         }
 
         public override string ToString()

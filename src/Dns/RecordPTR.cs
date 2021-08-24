@@ -36,7 +36,7 @@ namespace Heijden.DNS
 
 		public override void Write(RecordWriter rw)
 		{
-			rw.WriteString(PTRDNAME);
+			rw.WriteDomainName(PTRDNAME);
 		}
 	}
 }
