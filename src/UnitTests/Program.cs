@@ -72,6 +72,7 @@ namespace CosineKitty.ZeroConfigWatcher.UnitTests
         static Test[] UnitTests = new Test[]
         {
             new Test("ReadWrite_A", ReadWrite_A),
+            new Test("ReadWrite_AAAA", ReadWrite_AAAA),
             new Test("ReadWrite_PTR", ReadWrite_PTR),
         };
 
@@ -79,6 +80,19 @@ namespace CosineKitty.ZeroConfigWatcher.UnitTests
         {
             Console.WriteLine("ERROR: {0}", message);
             return 1;
+        }
+
+        static RR RoundTrip(RR packet)
+        {
+            // Serialize the record as binary data.
+            var writer = new RecordWriter();
+            packet.Write(writer);
+            byte[] data = writer.GetData();
+
+            // Parse the binary data back as a packet.
+            var reader = new RecordReader(data);
+            var copy = new RR(reader);
+            return copy;
         }
 
         static int CheckDeserializedPacket(RR packet, RR copy)
@@ -110,15 +124,7 @@ namespace CosineKitty.ZeroConfigWatcher.UnitTests
             var rec = new RecordA(new byte[] {192, 168, 1, 123});
             var packet = new RR(DomainName, Heijden.DNS.Type.A, Class.IN, TimeToLive, rec);
 
-            // Serialize the "A" record as binary data.
-            var writer = new RecordWriter();
-            packet.Write(writer);
-            byte[] data = writer.GetData();
-
-            // Parse the binary data back as a packet.
-            var reader = new RecordReader(data);
-            var copy = new RR(reader);
-
+            RR copy = RoundTrip(packet);
             if (0 != CheckDeserializedPacket(packet, copy))
                 return 1;
 
@@ -135,6 +141,11 @@ namespace CosineKitty.ZeroConfigWatcher.UnitTests
             return Fail($"Reconstituted record is of incorrect type {copy.RECORD.GetType()}");
         }
 
+        static int ReadWrite_AAAA()
+        {
+            return 0;
+        }
+
         static int ReadWrite_PTR()
         {
             const string DomainName = "phony.example.com.";
@@ -145,15 +156,7 @@ namespace CosineKitty.ZeroConfigWatcher.UnitTests
             var rec = new RecordPTR(PtrName);
             var packet = new RR(DomainName, Heijden.DNS.Type.PTR, Class.IN, TimeToLive, rec);
 
-            // Serialize the "PTR" record as binary data.
-            var writer = new RecordWriter();
-            packet.Write(writer);
-            byte[] data = writer.GetData();
-
-            // Parse the binary data back as a packet.
-            var reader = new RecordReader(data);
-            var copy = new RR(reader);
-
+            RR copy = RoundTrip(packet);
             if (0 != CheckDeserializedPacket(packet, copy))
                 return 1;
 

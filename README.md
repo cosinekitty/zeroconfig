@@ -1,6 +1,12 @@
-# ZeroConfigWatcher
+# zeroconfig
 
-This is a C# .NET 5 diagnostic tool for monitoring MDNS ZeroConfig service discovery traffic on the local network.
+This is a collection of C# class libraries and executables for browsing,
+resolving, and publishing services on a Multicast Domain Name Service (MDNS).
+
+# Watcher
+
+`Watcher` is a C# .NET 5 diagnostic tool for monitoring MDNS ZeroConfig
+service discovery traffic on the local network.
 
 You can think of the `Watcher` program as similar to a stripped-down
 [Wireshark](https://www.wireshark.org/) that runs as a .NET Core console app.
