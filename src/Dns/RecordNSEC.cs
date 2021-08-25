@@ -12,9 +12,8 @@ namespace Heijden.DNS
         public string NextDomainName;
         public HashSet<Type> IncludedRecordTypes;
 
-        public RecordNSEC(RecordReader rr)
+        public RecordNSEC(RecordReader rr, int totalRecordLength)
         {
-            ushort totalRecordLength = rr.ReadUInt16(-2);
             int posBeforeName = rr.Position;
             NextDomainName = rr.ReadDomainName();
             int nameLength = rr.Position - posBeforeName;
@@ -54,6 +53,12 @@ namespace Heijden.DNS
                     }
                 }
             }
+        }
+
+        public RecordNSEC(string nextDomainName, params Type[] typeList)
+        {
+            NextDomainName = nextDomainName;
+            IncludedRecordTypes = new HashSet<Type>(typeList);
         }
 
         public override void Write(RecordWriter rw)

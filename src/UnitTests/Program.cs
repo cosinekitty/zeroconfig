@@ -73,6 +73,7 @@ namespace CosineKitty.ZeroConfigWatcher.UnitTests
         {
             new Test("ReadWrite_A", ReadWrite_A),
             new Test("ReadWrite_AAAA", ReadWrite_AAAA),
+            new Test("ReadWrite_NSEC", ReadWrite_NSEC),
             new Test("ReadWrite_PTR", ReadWrite_PTR),
         };
 
@@ -187,6 +188,36 @@ namespace CosineKitty.ZeroConfigWatcher.UnitTests
                 if (cr.PTRDNAME != PtrName)
                 {
                     Console.WriteLine($"ERROR: cr.PTRDNAME={cr.PTRDNAME} does not match PtrName={PtrName}");
+                    return 1;
+                }
+                return 0;
+            }
+
+            Console.WriteLine($"ERROR: Reconstituted record is of incorrect type {copy.RECORD.GetType()}");
+            return 1;
+        }
+
+        static int ReadWrite_NSEC()
+        {
+            const string DomainName = "phony.example.com.";
+            const uint TimeToLive = 987;
+
+            const string NextDomainName = "zebra.example.com.";
+            var rec = new RecordNSEC(NextDomainName, Heijden.DNS.Type.PTR, Heijden.DNS.Type.TXT, Heijden.DNS.Type.A);
+            var packet = new RR(DomainName, Heijden.DNS.Type.NSEC, Class.IN, TimeToLive, rec);
+
+            RR copy = RoundTrip(packet);
+            if (0 != CheckDeserializedPacket(packet, copy))
+                return 1;
+
+            // Verify the parsed packet matches the original packet in every detail.
+            if (copy.RECORD is RecordNSEC cr)
+            {
+                string origText = rec.ToString();
+                string copyText = cr.ToString();
+                if (origText != copyText)
+                {
+                    Console.WriteLine($"ERROR: origText=[{origText}] != copyText=[{copyText}].");
                     return 1;
                 }
                 return 0;

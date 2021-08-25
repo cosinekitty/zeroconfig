@@ -8,22 +8,16 @@ namespace Heijden.DNS
     {
         byte[] m_Data;
         int m_Position;
+
         public RecordReader(byte[] data)
         {
             m_Data = data;
-            m_Position = 0;
         }
 
         public int Position
         {
-            get
-            {
-                return m_Position;
-            }
-            set
-            {
-                m_Position = value;
-            }
+            get { return m_Position; }
+            set { m_Position = value; }
         }
 
         public int Length
@@ -43,13 +37,20 @@ namespace Heijden.DNS
             m_Position = Position;
         }
 
-
         public byte ReadByte()
         {
-            if (m_Position >= m_Data.Length)
+            if (m_Position < 0 || m_Position >= m_Data.Length)
                 return 0;
             else
                 return m_Data[m_Position++];
+        }
+
+        private byte AccessByte(int position)
+        {
+            if (position < 0 || position >= m_Data.Length)
+                return 0;
+            else
+                return m_Data[position];
         }
 
         public UInt16 ReadUInt16()
@@ -84,26 +85,29 @@ namespace Heijden.DNS
             var bytes = new List<byte>();
             int length = 0;
 
-            // get  the length of the first label
+            // Get the length of the next label.
             while ((length = ReadByte()) != 0)
             {
-                // top 2 bits set denotes domain name compression and to reference elsewhere
+                // Top 2 bits set denotes domain name compression and to reference elsewhere.
                 if ((length & 0xc0) == 0xc0)
                 {
-                    // work out the existing domain name, copy this pointer
-                    RecordReader newRecordReader = new RecordReader(m_Data, (length & 0x3f) << 8 | ReadByte());
-                    if (bytes.Count > 0)
+                    // The actual label text lives at an earlier position in this same packet.
+                    int position = (length & 0x3f) << 8 | ReadByte();
+                    length = AccessByte(position++);
+                    while (length > 0)
                     {
-                        return Encoding.UTF8.GetString(bytes.ToArray(), 0, bytes.Count) + newRecordReader.ReadDomainName();
+                        bytes.Add(AccessByte(position++));
+                        --length;
                     }
-                    return newRecordReader.ReadDomainName();
                 }
-
-                // if not using compression, copy a char at a time to the domain name
-                while (length > 0)
+                else
                 {
-                    bytes.Add(ReadByte());
-                    length--;
+                    // if not using compression, copy a char at a time to the domain name
+                    while (length > 0)
+                    {
+                        bytes.Add(ReadByte());
+                        --length;
+                    }
                 }
                 bytes.Add((byte)'.');
             }
@@ -144,7 +148,7 @@ namespace Heijden.DNS
                 case Type.SRV:
                     return new RecordSRV(this);
                 case Type.NSEC:
-                    return new RecordNSEC(this);
+                    return new RecordNSEC(this, Length);
                 default:
                     return new RecordUnknown(this);
             }
