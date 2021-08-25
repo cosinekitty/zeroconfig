@@ -3,6 +3,13 @@
 This is a collection of C# class libraries and executables for browsing,
 resolving, and publishing services on a Multicast Domain Name Service (MDNS).
 
+# Browse
+
+An interactive tool that provides a command prompt
+for interacting with zeroconfig operations: enumerating
+available service types, browsing services, resolving
+services, and publishing/unpublishing services.
+
 # Watcher
 
 `Watcher` is a C# .NET 5 diagnostic tool for monitoring MDNS ZeroConfig
