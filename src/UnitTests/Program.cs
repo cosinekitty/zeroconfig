@@ -120,7 +120,7 @@ namespace CosineKitty.ZeroConfigWatcher.UnitTests
             const string DomainName = "phony.example.com.";
             const uint TimeToLive = 3600;
 
-            // Create an "A" record.
+            // Create an "A" record for the IPv4 address.
             var rec = new RecordA(new byte[] {192, 168, 1, 123});
             var packet = new RR(DomainName, Heijden.DNS.Type.A, Class.IN, TimeToLive, rec);
 
@@ -143,7 +143,28 @@ namespace CosineKitty.ZeroConfigWatcher.UnitTests
 
         static int ReadWrite_AAAA()
         {
-            return 0;
+            const string DomainName = "bigbadbob.example.com.";
+            const uint TimeToLive = 1234;
+
+            // Create an "AAAA" record for the IPv6 address.
+            var rec = new RecordAAAA(new UInt16[] {0x1234, 0x5678, 0xabcd, 0x9876, 0x4444, 0x5555, 0x6666, 0x7777});
+            var packet = new RR(DomainName, Heijden.DNS.Type.AAAA, Class.IN, TimeToLive, rec);
+
+            RR copy = RoundTrip(packet);
+            if (0 != CheckDeserializedPacket(packet, copy))
+                return 1;
+
+            // Verify the parsed packet matches the original packet in every detail.
+            if (copy.RECORD is RecordAAAA cr)
+            {
+                string ip1 = rec.ToString();
+                string ip2 = cr.ToString();
+                if (ip1 != ip2)
+                    return Fail($"ip1={ip1} does not match ip2={ip2}");
+                return 0;
+            }
+
+            return Fail($"Reconstituted record is of incorrect type {copy.RECORD.GetType()}");
         }
 
         static int ReadWrite_PTR()

@@ -35,7 +35,7 @@ namespace Heijden.DNS
         public RecordA(byte[] addr)
         {
             if (addr == null || addr.Length != 4)
-                throw new ArgumentException("IP address must be 4 bytes.");
+                throw new ArgumentException("IPv4 address must be 4 bytes.");
 
             data[0] = addr[0];
             data[1] = addr[1];
