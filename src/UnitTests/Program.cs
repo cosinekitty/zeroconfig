@@ -401,32 +401,111 @@ namespace CosineKitty.ZeroConfigWatcher.UnitTests
             if (response.Additionals.Count != 5)
                 return Fail($"Expected 5 additionals but found {response.Additionals.Count}");
 
+            const string FullName = "745E1C22FAFD@Living Room._raop._tcp.local.";
+            const string ShortName = "Living-Room.local.";
+
             // Answer 0
 
             RR r = response.Answers[0];
             if (r.NAME != "_raop._tcp.local.")
                 return Fail("Incorrect Answers[0].NAME");
 
-            if (r.Type != Heijden.DNS.Type.PTR)
-                return Fail($"Answers[0].Type = {r.Type} is incorrect.");
-
             if (r.RECORD is RecordPTR ptr)
             {
-                if (ptr.PTRDNAME != "745E1C22FAFD@Living Room._raop._tcp.local.")
+                if (ptr.PTRDNAME != FullName)
                     return Fail("Answers[0].PTRDNAME is incorrect.");
             }
             else
                 return Fail("Answers[0] should have been PTR type.");
 
             // Additional 0
+            r = response.Additionals[0];
+            if (r.NAME != FullName)
+                return Fail("Additionals[0] has incorrect name.");
+
+            if (r.RECORD is RecordSRV srv)
+            {
+                string t = srv.ToString();
+                if (t != "0 0 1024 Living-Room.local.")
+                    return Fail("Additionals[0] has incorrect contents: " + t);
+            }
+            else
+                return Fail("Additionals[0] should have been SRV.");
 
             // Additional 1
+            r = response.Additionals[1];
+            if (r.NAME != FullName)
+                return Fail("Additionals[1] has incorrect name.");
+
+            if (r.RECORD is RecordTXT txt)
+            {
+                var correct = new string[]
+                {
+                    "txtvers=1",
+                    "ch=2",
+                    "cn=0,1",
+                    "et=0,4",
+                    "sv=false",
+                    "da=true",
+                    "sr=44100",
+                    "ss=16",
+                    "pw=false",
+                    "vn=65537",
+                    "tp=UDP",
+                    "vs=103.2",
+                    "am=XW-SMA4",
+                    "fv=s1010.1000.0"
+                };
+                if (txt.TXT.Count != correct.Length)
+                    return Fail($"Expected {correct.Length} TXT entries, but found {txt.TXT.Count}.");
+
+                for (int i = 0; i < correct.Length; ++i)
+                    if (correct[i] != txt.TXT[i])
+                        return Fail($"Expected TXT[{i}]='{correct[i]}' but found '{txt.TXT[i]}'.");
+            }
+            else
+                return Fail("Additionals[1] should have been TXT.");
 
             // Additional 2
+            r = response.Additionals[2];
+            if (r.NAME != ShortName)
+                return Fail($"Additional[2] name should have been '{ShortName}' but found '{r.NAME}'.");
+
+            if (r.RECORD is RecordA a)
+            {
+                if (a.ToString() != "192.168.1.2")
+                    return Fail("Incorrect IPv4 address in A record.");
+            }
+            else
+                return Fail("Additionals[2] should have been type A.");
 
             // Additional 3
+            r = response.Additionals[3];
+            if (r.NAME != FullName)
+                return Fail("Additionals[3] has incorrect name.");
+
+            if (r.RECORD is RecordNSEC n3)
+            {
+                string t = n3.ToString();
+                if (t != "NSEC 745E1C22FAFD@Living Room._raop._tcp.local. [NSAPPTR, A6]")
+                    return Fail("Additionals[3] has incorrect content: " + t);
+            }
+            else
+                return Fail("Additionals[3] should have been NSEC.");
 
             // Additional 4
+            r = response.Additionals[4];
+            if (r.NAME != ShortName)
+                return Fail("Additionals[4] has incorrect name.");
+
+            if (r.RECORD is RecordNSEC n4)
+            {
+                string t = n4.ToString();
+                if (t != "NSEC Living-Room.local. [SOA]")
+                    return Fail("Additionals[4] has incorrect content: " + t);
+            }
+            else
+                return Fail("Additionals[4] should have been NSEC.");
 
             return 0;
         }
