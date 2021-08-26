@@ -96,12 +96,16 @@ AdditionalRR: name=[3758acae-442a-47bd-cd16-dce0b88acd72.local.] type=A class=32
 
 ## References
 
+[RFC 1035 : Domain Names - Implementation And Specification](https://datatracker.ietf.org/doc/html/rfc1035)
+
+[RFC 4034 : Resource Records for the DNS Security Extensions](https://datatracker.ietf.org/doc/html/rfc4034)
+
 [RFC 6762 : Multicast DNS](https://tools.ietf.org/html/rfc6762)
-This document describes the evolution of traditional unicast domain name service
+Describes the evolution of traditional unicast domain name service
 to a link-local multicast DNS service.
 
 [RFC 6763 : DNS-Based Service Discovery](https://tools.ietf.org/html/rfc6763)
-This document goes more into detail about how MDNS is used for browsing and
+Provides detail about how MDNS is used for browsing and
 resolving services on a local network.
 
 ## Credits
