@@ -204,6 +204,16 @@ namespace Heijden.DNS
             return (ushort)((oldValue >> position) & mask);
         }
 
+        public void Write(RecordWriter rw)
+        {
+            rw.WriteUint16(ID);
+            rw.WriteUint16(Flags);
+            rw.WriteUint16(QDCOUNT);
+            rw.WriteUint16(ANCOUNT);
+            rw.WriteUint16(NSCOUNT);
+            rw.WriteUint16(ARCOUNT);
+        }
+
         /// <summary>
         /// Represents the header as a byte array
         /// </summary>
@@ -231,8 +241,6 @@ namespace Heijden.DNS
         {
             return (short)(((host & 0xff) << 8) | ((host >> 8) & 0xff));
         }
-
-
 
         /// <summary>
         /// query (false), or a response (true)

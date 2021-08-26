@@ -53,5 +53,22 @@ namespace Heijden.DNS
             for (int i = 0; i < header.ARCOUNT; i++)
                 Additionals.Add(new RR(rr));
         }
+
+        public void Write(RecordWriter rw)
+        {
+            header.Write(rw);
+
+            foreach (Question q in Questions)
+                rw.WriteData(q.Data);       // FIXFIXFIX: get rid of Data pattern - replace with Write pattern
+
+            foreach (RR a in Answers)
+                a.Write(rw);
+
+            foreach (RR a in Authorities)
+                a.Write(rw);
+
+            foreach (RR a in Additionals)
+                a.Write(rw);
+        }
     }
 }

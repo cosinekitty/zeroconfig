@@ -5,7 +5,7 @@ Fail()
     exit 1
 }
 
-dotnet run -- all || Fail "Error running unit tests."
+dotnet run -- $1 all || Fail "Error running unit tests."
 
 cat pass.txt
 exit 0

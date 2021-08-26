@@ -28,6 +28,11 @@ namespace Heijden.DNS
             buffer.Add(x);
         }
 
+        public void WriteData(byte[] data)
+        {
+            buffer.AddRange(data);
+        }
+
         public void WriteUint16(UInt16 x)
         {
             buffer.Add((byte)(x >> 8));

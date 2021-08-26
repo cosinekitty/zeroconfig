@@ -135,7 +135,7 @@ namespace Heijden.DNS
 
         public void Write(RecordWriter rw)
         {
-            rw.WriteDomainNameUncompressed(NAME);
+            rw.WriteDomainNameCompressed(NAME);
             rw.WriteUint16((UInt16)Type);
             rw.WriteUint16((UInt16)Class);
             rw.WriteUint32(TTL);
