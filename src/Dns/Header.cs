@@ -215,34 +215,6 @@ namespace Heijden.DNS
         }
 
         /// <summary>
-        /// Represents the header as a byte array
-        /// </summary>
-        public byte[] Data
-        {
-            get
-            {
-                List<byte> data = new List<byte>();
-                data.AddRange(WriteShort(ID));
-                data.AddRange(WriteShort(Flags));
-                data.AddRange(WriteShort(QDCOUNT));
-                data.AddRange(WriteShort(ANCOUNT));
-                data.AddRange(WriteShort(NSCOUNT));
-                data.AddRange(WriteShort(ARCOUNT));
-                return data.ToArray();
-            }
-        }
-
-        byte[] WriteShort(ushort sValue)
-        {
-            return BitConverter.GetBytes(HostToNetworkOrder((short)sValue));
-        }
-
-        internal static short HostToNetworkOrder(short host)
-        {
-            return (short)(((host & 0xff) << 8) | ((host >> 8) & 0xff));
-        }
-
-        /// <summary>
         /// query (false), or a response (true)
         /// </summary>
         public bool QR

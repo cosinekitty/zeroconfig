@@ -59,7 +59,7 @@ namespace Heijden.DNS
             header.Write(rw);
 
             foreach (Question q in Questions)
-                rw.WriteData(q.Data);       // FIXFIXFIX: get rid of Data pattern - replace with Write pattern
+                q.Write(rw);
 
             foreach (RR a in Answers)
                 a.Write(rw);

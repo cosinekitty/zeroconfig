@@ -77,50 +77,16 @@ namespace Heijden.DNS
             QClass = (QClass)rr.ReadUInt16();
         }
 
-        byte[] WriteName(string src)
+        public void Write(RecordWriter writer)
         {
-            if (!src.EndsWith(".", StringComparison.Ordinal))
-                src += ".";
-
-            if (src == ".")
-                return new byte[1];
-
-            var sb = new StringBuilder();
-            int intI, intJ, intLen = src.Length;
-            sb.Append('\0');
-            for (intI = 0, intJ = 0; intI < intLen; intI++, intJ++)
-            {
-                sb.Append(src[intI]);
-                if (src[intI] == '.')
-                {
-                    sb[intI - intJ] = (char)(intJ & 0xff);
-                    intJ = -1;
-                }
-            }
-            sb[sb.Length - 1] = '\0';
-            return Encoding.UTF8.GetBytes(sb.ToString());
-        }
-
-        public byte[] Data
-        {
-            get
-            {
-                var data = new List<byte>();
-                data.AddRange(WriteName(QName));
-                data.AddRange(WriteShort((ushort)QType));
-                data.AddRange(WriteShort((ushort)QClass));
-                return data.ToArray();
-            }
-        }
-
-        byte[] WriteShort(ushort sValue)
-        {
-            return BitConverter.GetBytes(Header.HostToNetworkOrder((short)sValue));
+            writer.WriteDomainNameUncompressed(QName);
+            writer.WriteUint16((UInt16)QType);
+            writer.WriteUint16((UInt16)QClass);
         }
 
         public override string ToString()
         {
-            return string.Format("{0,-32}\t{1}\t{2}", QName, QClass, QType);
+            return string.Format("{0,-32} {1} {2}", QName, QClass, QType);
         }
     }
 }

@@ -23,17 +23,13 @@ namespace Heijden.DNS
             questions.Add(question);
         }
 
-        public byte[] Data
+        public void Write(RecordWriter writer)
         {
-            get
-            {
-                var data = new List<byte>();
-                header.QDCOUNT = (ushort)questions.Count;
-                data.AddRange(header.Data);
-                foreach (var q in questions)
-                    data.AddRange(q.Data);
-                return data.ToArray();
-            }
+            header.QDCOUNT = (ushort)questions.Count;
+
+            header.Write(writer);
+            foreach (Question q in questions)
+                q.Write(writer);
         }
     }
 }
