@@ -76,6 +76,7 @@ namespace CosineKitty.ZeroConfigWatcher.UnitTests
             new Test("ReadWrite_AAAA", ReadWrite_AAAA),
             new Test("ReadWrite_NSEC", ReadWrite_NSEC),
             new Test("ReadWrite_PTR", ReadWrite_PTR),
+            new Test("ReadWrite_SRV", ReadWrite_SRV),
         };
 
         static int Fail(string message)
@@ -267,6 +268,31 @@ namespace CosineKitty.ZeroConfigWatcher.UnitTests
 
             // Verify the parsed packet matches the original packet in every detail.
             if (copy.RECORD is RecordNSEC cr)
+            {
+                string origText = rec.ToString();
+                string copyText = cr.ToString();
+                if (origText != copyText)
+                    return Fail($"origText=[{origText}] != copyText=[{copyText}].");
+                return 0;
+            }
+
+            return Fail($"Reconstituted record is of incorrect type {copy.RECORD.GetType()}");
+        }
+
+        static int ReadWrite_SRV()
+        {
+            const string DomainName = "phony.example.com.";
+            const uint TimeToLive = 987;
+
+            var rec = new RecordSRV(12345, 9876, 8153, "totally.bogus.example.com.");
+            var packet = new RR(DomainName, Heijden.DNS.Type.SRV, Class.IN, TimeToLive, rec);
+
+            RR copy = RoundTrip(packet);
+            if (0 != CheckDeserializedPacket(packet, copy))
+                return 1;
+
+            // Verify the parsed packet matches the original packet in every detail.
+            if (copy.RECORD is RecordSRV cr)
             {
                 string origText = rec.ToString();
                 string copyText = cr.ToString();

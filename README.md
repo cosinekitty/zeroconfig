@@ -98,6 +98,8 @@ AdditionalRR: name=[3758acae-442a-47bd-cd16-dce0b88acd72.local.] type=A class=32
 
 [RFC 1035 : Domain Names - Implementation And Specification](https://datatracker.ietf.org/doc/html/rfc1035)
 
+[RFC 2782 : A DNS RR for specifying the location of services (DNS SRV)](https://datatracker.ietf.org/doc/html/rfc2782)
+
 [RFC 4034 : Resource Records for the DNS Security Extensions](https://datatracker.ietf.org/doc/html/rfc4034)
 
 [RFC 6762 : Multicast DNS](https://tools.ietf.org/html/rfc6762)

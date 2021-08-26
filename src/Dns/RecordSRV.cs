@@ -80,11 +80,22 @@ namespace Heijden.DNS
             TARGET = rr.ReadDomainName();
         }
 
+        public RecordSRV(ushort priority, ushort weight, ushort port, string target)
+        {
+            PRIORITY = priority;
+            WEIGHT = weight;
+            PORT = port;
+            TARGET = target;
+        }
+
         public override void Write(RecordWriter rw)
         {
             rw.WriteUint16(PRIORITY);
             rw.WriteUint16(WEIGHT);
             rw.WriteUint16(PORT);
+
+            // https://datatracker.ietf.org/doc/html/rfc2782
+            // "Unless and until permitted by future standards action, name compression is not to be used for this field."
             rw.WriteDomainNameUncompressed(TARGET);
         }
 
