@@ -12,6 +12,11 @@ namespace Heijden.DNS
         public string NextDomainName;
         public HashSet<Type> IncludedRecordTypes;
 
+        public override Type RecordType()
+        {
+            return Type.NSEC;
+        }
+
         public RecordNSEC(RecordReader rr, int totalRecordLength)
         {
             int posBeforeName = rr.Position;

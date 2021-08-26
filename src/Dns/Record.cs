@@ -10,5 +10,6 @@ namespace Heijden.DNS
         public RR RR;
 
         public abstract void Write(RecordWriter rw);
+        public abstract Type RecordType();
     }
 }

@@ -23,6 +23,11 @@ namespace Heijden.DNS
         public byte[] data = new byte[4];
         public IPAddress Address;
 
+        public override Type RecordType()
+        {
+            return Type.A;
+        }
+
         public RecordA(RecordReader rr)
         {
             data[0] = rr.ReadByte();

@@ -72,6 +72,11 @@ namespace Heijden.DNS
         public ushort PORT;
         public string TARGET;
 
+        public override Type RecordType()
+        {
+            return Type.SRV;
+        }
+
         public RecordSRV(RecordReader rr)
         {
             PRIORITY = rr.ReadUInt16();

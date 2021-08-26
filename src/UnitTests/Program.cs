@@ -183,7 +183,7 @@ namespace CosineKitty.ZeroConfigWatcher.UnitTests
 
             // Create an "A" record for the IPv4 address.
             var rec = new RecordA(new byte[] {192, 168, 1, 123});
-            var packet = new RR(DomainName, Heijden.DNS.Type.A, Class.IN, TimeToLive, rec);
+            var packet = new RR(DomainName, TimeToLive, rec);
 
             RR copy = RoundTrip(packet);
             if (0 != CheckDeserializedPacket(packet, copy))
@@ -209,7 +209,7 @@ namespace CosineKitty.ZeroConfigWatcher.UnitTests
 
             // Create an "AAAA" record for the IPv6 address.
             var rec = new RecordAAAA(new UInt16[] {0x1234, 0x5678, 0xabcd, 0x9876, 0x4444, 0x5555, 0x6666, 0x7777});
-            var packet = new RR(DomainName, Heijden.DNS.Type.AAAA, Class.IN, TimeToLive, rec);
+            var packet = new RR(DomainName, TimeToLive, rec);
 
             RR copy = RoundTrip(packet);
             if (0 != CheckDeserializedPacket(packet, copy))
@@ -236,7 +236,7 @@ namespace CosineKitty.ZeroConfigWatcher.UnitTests
             // Create a "PTR" record.
             const string PtrName = "balogna.example.com.";
             var rec = new RecordPTR(PtrName);
-            var packet = new RR(DomainName, Heijden.DNS.Type.PTR, Class.IN, TimeToLive, rec);
+            var packet = new RR(DomainName, TimeToLive, rec);
 
             RR copy = RoundTrip(packet);
             if (0 != CheckDeserializedPacket(packet, copy))
@@ -260,7 +260,7 @@ namespace CosineKitty.ZeroConfigWatcher.UnitTests
 
             const string NextDomainName = "zebra.example.com.";
             var rec = new RecordNSEC(NextDomainName, Heijden.DNS.Type.PTR, Heijden.DNS.Type.TXT, Heijden.DNS.Type.A);
-            var packet = new RR(DomainName, Heijden.DNS.Type.NSEC, Class.IN, TimeToLive, rec);
+            var packet = new RR(DomainName, TimeToLive, rec);
 
             RR copy = RoundTrip(packet);
             if (0 != CheckDeserializedPacket(packet, copy))
@@ -285,7 +285,7 @@ namespace CosineKitty.ZeroConfigWatcher.UnitTests
             const uint TimeToLive = 987;
 
             var rec = new RecordSRV(12345, 9876, 8153, "totally.bogus.example.com.");
-            var packet = new RR(DomainName, Heijden.DNS.Type.SRV, Class.IN, TimeToLive, rec);
+            var packet = new RR(DomainName, TimeToLive, rec);
 
             RR copy = RoundTrip(packet);
             if (0 != CheckDeserializedPacket(packet, copy))

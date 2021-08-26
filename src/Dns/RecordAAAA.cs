@@ -15,6 +15,11 @@ namespace Heijden.DNS
     {
         public UInt16[] data = new UInt16[8];
 
+        public override Type RecordType()
+        {
+            return Type.AAAA;
+        }
+
         public RecordAAAA(RecordReader rr)
         {
             for (int i = 0; i < 8; ++i)

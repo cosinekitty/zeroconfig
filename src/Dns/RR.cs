@@ -122,12 +122,12 @@ namespace Heijden.DNS
             RECORD.RR = this;
         }
 
-        public RR(string name, Type type, Class cls, UInt32 ttl, Record record)
+        public RR(string name, UInt32 ttl, Record record)
         {
             TimeLived = 0;
             NAME = name;
-            Type = type;
-            Class = cls;
+            Type = record.RecordType();
+            Class = Heijden.DNS.Class.IN;
             TTL = ttl;
             RECORD = record;
             RECORD.RR = this;

@@ -1,8 +1,5 @@
 /*
  * http://www.iana.org/assignments/dns-parameters
- * 
- * 
- * 
  */
 
 

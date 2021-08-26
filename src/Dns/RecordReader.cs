@@ -60,12 +60,6 @@ namespace Heijden.DNS
             return (UInt16)((hi << 8) | lo);
         }
 
-        public UInt16 ReadUInt16(int offset)
-        {
-            m_Position += offset;
-            return ReadUInt16();
-        }
-
         public UInt32 ReadUInt32()
         {
             UInt16 hi = ReadUInt16();
@@ -153,7 +147,7 @@ namespace Heijden.DNS
                 case Type.NSEC:
                     return new RecordNSEC(this, Length);
                 default:
-                    return new RecordUnknown(this);
+                    return new RecordUnknown(this, type, Length);
             }
         }
     }

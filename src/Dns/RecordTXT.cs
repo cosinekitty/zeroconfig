@@ -26,6 +26,11 @@ namespace Heijden.DNS
     {
         public List<string> TXT;
 
+        public override Type RecordType()
+        {
+            return Type.TXT;
+        }
+
         public RecordTXT(RecordReader rr, int Length)
         {
             int pos = rr.Position;

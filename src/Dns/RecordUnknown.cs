@@ -5,12 +5,18 @@ namespace Heijden.DNS
 {
     public class RecordUnknown : Record
     {
+        public Type TYPE;
         public byte[] RDATA;
-        public RecordUnknown(RecordReader rr)
+
+        public override Type RecordType()
         {
-            // re-read length
-            ushort RDLENGTH = rr.ReadUInt16(-2);
-            RDATA = rr.ReadBytes(RDLENGTH);
+            return TYPE;
+        }
+
+        public RecordUnknown(RecordReader rr, Type type, int recordLength)
+        {
+            TYPE = type;
+            RDATA = rr.ReadBytes(recordLength);
         }
 
         public override void Write(RecordWriter rw)
