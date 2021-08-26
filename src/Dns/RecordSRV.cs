@@ -1,7 +1,7 @@
 using System;
 /*
  *  http://www.ietf.org/rfc/rfc2782.txt
- * 
+ *
    Priority
         The priority of this target host.  A client MUST attempt to
         contact the target host with the lowest-numbered priority it can
@@ -85,7 +85,7 @@ namespace Heijden.DNS
             rw.WriteUint16(PRIORITY);
             rw.WriteUint16(WEIGHT);
             rw.WriteUint16(PORT);
-            rw.WriteDomainName(TARGET);
+            rw.WriteDomainNameUncompressed(TARGET);
         }
 
         public override string ToString()

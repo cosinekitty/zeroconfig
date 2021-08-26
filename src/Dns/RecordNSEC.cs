@@ -66,7 +66,7 @@ namespace Heijden.DNS
             if (IncludedRecordTypes == null || IncludedRecordTypes.Count == 0)
                 throw new Exception("NSEC record must contain at least one record type.");
 
-            rw.WriteDomainName(NextDomainName);
+            rw.WriteDomainNameUncompressed(NextDomainName);
 
             var map = new byte[256, 32];
             foreach (Type t in IncludedRecordTypes)

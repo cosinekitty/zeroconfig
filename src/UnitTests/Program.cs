@@ -71,6 +71,7 @@ namespace CosineKitty.ZeroConfigWatcher.UnitTests
 
         static Test[] UnitTests = new Test[]
         {
+            new Test("Compression", Compression),
             new Test("ReadWrite_A", ReadWrite_A),
             new Test("ReadWrite_AAAA", ReadWrite_AAAA),
             new Test("ReadWrite_NSEC", ReadWrite_NSEC),
@@ -81,6 +82,64 @@ namespace CosineKitty.ZeroConfigWatcher.UnitTests
         {
             Console.WriteLine("ERROR: {0}", message);
             return 1;
+        }
+
+        static int Compression()
+        {
+            // Exercise domain name compression.
+            // Verify that the entire common tail part of a domain name
+            // is aliased as a pointer to an earlier part.
+            // https://datatracker.ietf.org/doc/html/rfc1035#section-4.1.4
+
+            var writer = new RecordWriter();
+            writer.WriteUint16(0x1234);     // just filler data, so offsets are nonzero
+            int firstIndex = writer.Length;
+            if (firstIndex != 2)
+                return Fail($"Incorrect firstIndex={firstIndex}; expected 2.");
+
+            writer.WriteDomainNameCompressed("bunny.example.com.");
+            int secondIndex = writer.Length;
+            int firstNameLength = secondIndex - firstIndex;
+            // The first name length should be
+            // 1 + 5 "bunny"
+            // 1 + 7 "example"
+            // 1 + 3 "com"
+            // 1 (terminator)
+            // for a total of 19 bytes.
+            if (firstNameLength != 19)
+                return Fail($"Incorrect firstNameLength={firstNameLength}; expected 19.");
+
+            writer.WriteDomainNameCompressed("fluffy.bunny.example.com.");
+            int compressedNameLength = writer.Length - secondIndex;
+
+            // The compressed name format should be exactly this:
+            byte[] expected = new byte[]
+            {
+                6,          // the length of the string "fluffy"
+                (byte)'f',
+                (byte)'l',
+                (byte)'u',
+                (byte)'f',
+                (byte)'f',
+                (byte)'y',
+
+                0xc0,       // pointer escape 0xc0, and high byte of pointer is 0x00
+                0x02        // low byte of pointer is 0x02
+            };
+
+            if (compressedNameLength != expected.Length)
+                return Fail($"Expected compressed name length to be {expected.Length} bytes, but found {compressedNameLength}.");
+
+            // Verify each byte is as we expect.
+            for (int i = 0; i < expected.Length; ++i)
+            {
+                int k = secondIndex + i;
+                byte actual = writer.GetByte(k);
+                if (expected[i] != actual)
+                    return Fail($"Expected byte value 0x{expected[i]:x2} at offset {k}, but found 0x{actual:x2}.");
+            }
+
+            return 0;
         }
 
         static RR RoundTrip(RR packet)
@@ -186,15 +245,11 @@ namespace CosineKitty.ZeroConfigWatcher.UnitTests
             if (copy.RECORD is RecordPTR cr)
             {
                 if (cr.PTRDNAME != PtrName)
-                {
-                    Console.WriteLine($"ERROR: cr.PTRDNAME={cr.PTRDNAME} does not match PtrName={PtrName}");
-                    return 1;
-                }
+                    return Fail($"cr.PTRDNAME=[{cr.PTRDNAME}] does not match PtrName=[{PtrName}].");
                 return 0;
             }
 
-            Console.WriteLine($"ERROR: Reconstituted record is of incorrect type {copy.RECORD.GetType()}");
-            return 1;
+            return Fail($"Reconstituted record is of incorrect type {copy.RECORD.GetType()}");
         }
 
         static int ReadWrite_NSEC()
@@ -216,15 +271,11 @@ namespace CosineKitty.ZeroConfigWatcher.UnitTests
                 string origText = rec.ToString();
                 string copyText = cr.ToString();
                 if (origText != copyText)
-                {
-                    Console.WriteLine($"ERROR: origText=[{origText}] != copyText=[{copyText}].");
-                    return 1;
-                }
+                    return Fail($"origText=[{origText}] != copyText=[{copyText}].");
                 return 0;
             }
 
-            Console.WriteLine($"ERROR: Reconstituted record is of incorrect type {copy.RECORD.GetType()}");
-            return 1;
+            return Fail($"Reconstituted record is of incorrect type {copy.RECORD.GetType()}");
         }
     }
 }

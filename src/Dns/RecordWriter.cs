@@ -13,6 +13,11 @@ namespace Heijden.DNS
             get { return buffer.Count; }
         }
 
+        public byte GetByte(int index)
+        {
+            return buffer[index];
+        }
+
         public byte[] GetData()
         {
             return buffer.ToArray();
@@ -37,7 +42,55 @@ namespace Heijden.DNS
             buffer.Add((byte)(x));
         }
 
-        public void WriteDomainName(string s)
+        public void WriteDomainNameCompressed(string s)
+        {
+            List<byte> serial = WriteDomainNameUncompressed(new List<byte>(), s);
+
+            int index = 0;
+            while (serial[index] != 0)
+            {
+                // Can we represent the remaining tail portion using compression?
+                // Search earlier for a matching tail pattern.
+                // Compression cannot represent a position pointer beyond 0x3fff bytes.
+                int limit = Math.Min(0x3fff, buffer.Count);
+                for (int position = 0; position + (serial.Count - index) <= limit; ++position)
+                {
+                    if (buffer[position] == serial[index])      // does length match?
+                    {
+                        bool match = true;
+                        for (int k = 1; match && k < serial[index]; ++k)
+                            if (buffer[position + k] != serial[index + k])
+                                match = false;
+
+                        if (match)
+                        {
+                            // The remaining tail portion matches, so we can compress it.
+                            buffer.Add((byte)(0xc0 | (position >> 8)));
+                            buffer.Add((byte)position);
+                            return;
+                        }
+                    }
+                }
+
+                // Write the next label to the output.
+                buffer.Add(serial[index]);
+                for (int k = 1; k <= serial[index]; ++k)
+                    buffer.Add(serial[index + k]);
+
+                // Skip to the next label, if any remain.
+                index += 1 + serial[index];
+            }
+
+            // Completely uncompressed names need to end with a 0 terminator.
+            buffer.Add(0);
+        }
+
+        public void WriteDomainNameUncompressed(string s)
+        {
+            WriteDomainNameUncompressed(buffer, s);
+        }
+
+        private static List<byte> WriteDomainNameUncompressed(List<byte> buffer, string s)
         {
             // Split the domain name into a series of labels that are delimited by ".".
             string[] list = s.Split(new char[] {'.'}, StringSplitOptions.RemoveEmptyEntries);
@@ -46,27 +99,13 @@ namespace Heijden.DNS
                 byte[] data = Encoding.UTF8.GetBytes(label);
                 if (data.Length > 63)
                     throw new Exception($"Label [{label}] is longer than 63 bytes.");
-                byte length = (byte)data.Length;
-
-                // See if we can exploit compression by searching for the same byte pattern
-                // earlier in this same message.
-                int position = FindMatchingByteSequence(data);
-                if (position < 0 || position > 0x3fff)
-                {
-                    // No match, or position is not representable, so emit entire label sequence here.
-                    buffer.Add(length);
-                    for (int i = 0; i < data.Length; ++i)
-                        buffer.Add(data[i]);
-                }
-                else
-                {
-                    // Save space by emitting compressed data here.
-                    buffer.Add((byte)(0xc0 | (position >> 8)));
-                    buffer.Add((byte)(position));
-                }
+                buffer.Add((byte)data.Length);
+                for (int i = 0; i < data.Length; ++i)
+                    buffer.Add(data[i]);
             }
             // Terminate the label list with a 0-length byte.
             buffer.Add(0);
+            return buffer;
         }
 
         private int FindMatchingByteSequence(byte[] data)
@@ -94,10 +133,6 @@ namespace Heijden.DNS
         public void WriteString(string s)
         {
             byte[] data = Encoding.UTF8.GetBytes(s);
-
-            if (data.Length >= 0xc0)
-                throw new ArgumentException($"String is too long to encode: [{s}]");
-
             buffer.Add((byte)data.Length);
             for (int i = 0; i < data.Length; ++i)
                 buffer.Add(data[i]);

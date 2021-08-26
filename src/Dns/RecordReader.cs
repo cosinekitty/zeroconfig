@@ -93,27 +93,30 @@ namespace Heijden.DNS
                 {
                     // The actual label text lives at an earlier position in this same packet.
                     int position = (length & 0x3f) << 8 | ReadByte();
-                    length = AccessByte(position++);
-                    while (length > 0)
-                    {
-                        bytes.Add(AccessByte(position++));
-                        --length;
-                    }
+
+                    // Total hack: fake like we are reading from that position.
+                    int savePosition = m_Position;
+                    m_Position = position;
+                    string tail = ReadDomainName();
+
+                    // Restore the object back to its original state.
+                    m_Position = savePosition;
+
+                    if (bytes.Count == 0)
+                        return tail;
+                    return Encoding.UTF8.GetString(bytes.ToArray()) + tail;
                 }
-                else
+                // Not using compression, so copy the next label over.
+                while (length > 0)
                 {
-                    // if not using compression, copy a char at a time to the domain name
-                    while (length > 0)
-                    {
-                        bytes.Add(ReadByte());
-                        --length;
-                    }
+                    bytes.Add(ReadByte());
+                    --length;
                 }
                 bytes.Add((byte)'.');
             }
             if (bytes.Count == 0)
                 return ".";
-            return Encoding.UTF8.GetString(bytes.ToArray(), 0, bytes.Count);
+            return Encoding.UTF8.GetString(bytes.ToArray());
         }
 
         public string ReadString()
@@ -122,7 +125,7 @@ namespace Heijden.DNS
             var bytes = new List<byte>();
             for (int i=0; i<length; i++)
                 bytes.Add(ReadByte());
-            return Encoding.UTF8.GetString(bytes.ToArray(), 0, bytes.Count);
+            return Encoding.UTF8.GetString(bytes.ToArray());
         }
 
         public byte[] ReadBytes(int intLength)
