@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Threading;
@@ -77,6 +78,7 @@ namespace CosineKitty.ZeroConfigWatcher.UnitTests
             new Test("ReadWrite_NSEC", ReadWrite_NSEC),
             new Test("ReadWrite_PTR", ReadWrite_PTR),
             new Test("ReadWrite_SRV", ReadWrite_SRV),
+            new Test("ReadWrite_TXT", ReadWrite_TXT),
         };
 
         static int Fail(string message)
@@ -298,6 +300,41 @@ namespace CosineKitty.ZeroConfigWatcher.UnitTests
                 string copyText = cr.ToString();
                 if (origText != copyText)
                     return Fail($"origText=[{origText}] != copyText=[{copyText}].");
+                return 0;
+            }
+
+            return Fail($"Reconstituted record is of incorrect type {copy.RECORD.GetType()}");
+        }
+
+        static int ReadWrite_TXT()
+        {
+            const string DomainName = "phony.example.com.";
+            const uint TimeToLive = 987;
+
+            var txtlist = new string[]
+            {
+                "sr=44100",
+                "ct=true",
+                "fv=51.34.55.2",
+                "pw=129084712151231256"
+            };
+
+            var rec = new RecordTXT(txtlist);
+            var packet = new RR(DomainName, TimeToLive, rec);
+
+            RR copy = RoundTrip(packet);
+            if (0 != CheckDeserializedPacket(packet, copy))
+                return 1;
+
+            // Verify the parsed packet matches the original packet in every detail.
+            if (copy.RECORD is RecordTXT cr)
+            {
+                Debug(cr.ToString());
+                if (cr.TXT.Count != txtlist.Length)
+                    return Fail($"Reconstituted TXT has {cr.TXT.Count} entries, but expected {txtlist.Length}.");
+                for (int i = 0; i < txtlist.Length; ++i)
+                    if (txtlist[i] != cr.TXT[i])
+                        return Fail($"txtlist[{i}]='{txtlist[i]}', but cr.TXT[{i}]='{cr.TXT[i]}'.");
                 return 0;
             }
 

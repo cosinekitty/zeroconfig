@@ -33,20 +33,20 @@ namespace Heijden.DNS
 
         public RecordTXT(RecordReader rr, int Length)
         {
-            int pos = rr.Position;
             TXT = new List<string>();
-            while (
-                ((rr.Position - pos) < Length) &&
-                (rr.Position < rr.Length)
-                )
-            {
+            int pos = rr.Position;
+            while ((rr.Position - pos < Length) && (rr.Position < rr.Length))
                 TXT.Add(rr.ReadString());
-            }
         }
 
         public RecordTXT(Dictionary<string, string> dict)
         {
             TXT = dict.Select(kv => kv.Key + "=" + kv.Value).ToList();
+        }
+
+        public RecordTXT(IEnumerable<string> sequence)
+        {
+            TXT = sequence.ToList();
         }
 
         public override void Write(RecordWriter rw)
@@ -58,7 +58,7 @@ namespace Heijden.DNS
 
         public override string ToString()
         {
-            StringBuilder sb = new StringBuilder();
+            var sb = new StringBuilder();
             foreach (string txt in TXT)
             {
                 sb.AppendFormat("TXT \"{0}\"", txt);
