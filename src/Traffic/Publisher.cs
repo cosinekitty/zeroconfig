@@ -37,6 +37,8 @@ namespace CosineKitty.ZeroConfigWatcher
                 table[name] = service;
             }
 
+            Advertise(service);
+
             return true;
         }
 
@@ -69,7 +71,40 @@ namespace CosineKitty.ZeroConfigWatcher
 
         private void Advertise(PublishedService service)
         {
-            // 
+            // When someone sends a question PTR for [_raop._tcp.local.],
+            // We should respond with something like this:
+            //
+            // AnswerRR: name=[_raop._tcp.local.] type=PTR class=IN TTL=4500
+            // 745E1C22FAFD@Living Room._raop._tcp.local.
+            //
+            // AdditionalRR: name=[745E1C22FAFD@Living Room._raop._tcp.local.] type=SRV class=32769 TTL=120
+            // 0 0 1024 Living-Room.local.
+            //
+            // AdditionalRR: name=[745E1C22FAFD@Living Room._raop._tcp.local.] type=TXT class=32769 TTL=4500
+            // TXT "txtvers=1"
+            // TXT "ch=2"
+            // TXT "cn=0,1"
+            // TXT "et=0,4"
+            // TXT "sv=false"
+            // TXT "da=true"
+            // TXT "sr=44100"
+            // TXT "ss=16"
+            // TXT "pw=false"
+            // TXT "vn=65537"
+            // TXT "tp=UDP"
+            // TXT "vs=103.2"
+            // TXT "am=XW-SMA4"
+            // TXT "fv=s1010.1000.0"
+            //
+            // AdditionalRR: name=[Living-Room.local.] type=A class=32769 TTL=120
+            // 192.168.1.2
+            //
+            // AdditionalRR: name=[745E1C22FAFD@Living Room._raop._tcp.local.] type=NSEC class=32769 TTL=120
+            // NSEC 745E1C22FAFD@Living Room._raop._tcp.local. [NSAPPTR, A6]
+            //
+            // AdditionalRR: name=[Living-Room.local.] type=NSEC class=32769 TTL=120
+            // NSEC Living-Room.local. [SOA]
+
         }
 
         private void ExpireNow(PublishedService service)

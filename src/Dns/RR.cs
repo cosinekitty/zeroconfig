@@ -152,28 +152,4 @@ namespace Heijden.DNS
                 RECORD);
         }
     }
-
-    public class AnswerRR : RR
-    {
-        public AnswerRR(RecordReader br)
-            : base(br)
-        {
-        }
-    }
-
-    public class AuthorityRR : RR
-    {
-        public AuthorityRR(RecordReader br)
-            : base(br)
-        {
-        }
-    }
-
-    public class AdditionalRR : RR
-    {
-        public AdditionalRR(RecordReader br)
-            : base(br)
-        {
-        }
-    }
 }

@@ -76,13 +76,13 @@ namespace Watcher
             foreach (Question q in response.Questions)
                 PrintQuestion(q);
 
-            foreach (AnswerRR a in response.Answers)
+            foreach (RR a in response.Answers)
                 PrintRR(a);
 
-            foreach (AuthorityRR a in response.Authorities)
+            foreach (RR a in response.Authorities)
                 PrintRR(a);
 
-            foreach (AdditionalRR a in response.Additionals)
+            foreach (RR a in response.Additionals)
                 PrintRR(a);
         }
 

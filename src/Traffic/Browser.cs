@@ -232,13 +232,13 @@ namespace CosineKitty.ZeroConfigWatcher
             }
             */
 
-            foreach (AnswerRR answer in response.Answers)
+            foreach (RR answer in response.Answers)
                 Process(answer);
 
-            foreach (AuthorityRR answer in response.Authorities)
+            foreach (RR answer in response.Authorities)
                 Process(answer);
 
-            foreach (AdditionalRR answer in response.Additionals)
+            foreach (RR answer in response.Additionals)
                 Process(answer);
         }
 
@@ -306,12 +306,10 @@ namespace CosineKitty.ZeroConfigWatcher
                     hostInfo.UpdateAddress(ipv4);
                 }
             }
-            /*
             else if (answer.RECORD is RecordAAAA ipv6)
             {
                 // FIXFIXFIX: support IPv6 addresses too
             }
-            */
         }
 
         private ServiceCollection LazyCreateServiceType(string serviceType)
