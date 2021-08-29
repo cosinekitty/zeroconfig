@@ -132,7 +132,7 @@ namespace Heijden.DNS
         public ushort ID;
 
         // internal flag
-        ushort Flags;
+        public ushort Flags;
 
         /// <summary>
         /// the number of entries in the question section

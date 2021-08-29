@@ -32,7 +32,7 @@ namespace Heijden.DNS
         {
             TimeStamp = DateTime.Now;
             MessageSize = data.Length;
-            RecordReader rr = new RecordReader(data);
+            var rr = new RecordReader(data);
 
             Questions = new List<Question>();
             Answers = new List<RR>();
