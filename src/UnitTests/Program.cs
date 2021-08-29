@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Net;
 using System.Threading;
 using Heijden.DNS;
 
@@ -15,6 +16,41 @@ namespace CosineKitty.ZeroConfigWatcher.UnitTests
         {
             if (Verbose)
                 Console.WriteLine(text);
+        }
+
+        static void HexDump(byte[] data)
+        {
+            Console.WriteLine("       0  1  2  3  4  5  6  7    8  9  a  b  c  d  e  f");
+            Console.WriteLine("      -- -- -- -- -- -- -- --   -- -- -- -- -- -- -- --");
+            for (int row = 0; row < data.Length; row += 0x10)
+            {
+                Console.Write("{0} ", row.ToString("x4"));
+                for (int col = 0; col < 0x10; ++col)
+                {
+                    int ofs = row + col;
+                    if (col == 8)
+                        Console.Write("  ");
+                    if (ofs < data.Length)
+                        Console.Write(" {0}", data[ofs].ToString("x2"));
+                    else
+                        Console.Write("   ");
+                }
+
+                Console.Write("  ");
+
+                for (int col = 0; col < 0x10; ++col)
+                {
+                    int ofs = row + col;
+                    if (ofs >= data.Length)
+                        break;
+                    if (data[ofs] >= 0x20 && data[ofs] <= 0x7f)
+                        Console.Write("{0}", (char)data[ofs]);
+                    else
+                        Console.Write(".");
+                }
+
+                Console.WriteLine();
+            }
         }
 
         static int Main(string[] args)
@@ -80,6 +116,8 @@ namespace CosineKitty.ZeroConfigWatcher.UnitTests
             new Test("ReadWrite_SRV", ReadWrite_SRV),
             new Test("ReadWrite_TXT", ReadWrite_TXT),
             new Test("ResponseRoundTrip", ResponseRoundTrip),
+            new Test("Claim", Claim),
+            new Test("Announce", Announce),
         };
 
         static int Fail(string message)
@@ -507,6 +545,62 @@ namespace CosineKitty.ZeroConfigWatcher.UnitTests
             else
                 return Fail("Additionals[4] should have been NSEC.");
 
+            return 0;
+        }
+
+        static int Claim()
+        {
+            var pub = new PublishedService
+            {
+                Client = null,
+                LongName = "745E1C2300FF@Office",
+                ShortName = "Office",
+                ServiceType = "_raop._tcp.local.",
+                Port = 1234,
+                TxtRecord = new Dictionary<string, string>
+                {
+                    {"txtvers", "1" },
+                    {"ch", "2" },
+                    {"cn", "0,1" },
+                    {"et", "0,4" },
+                    {"sv", "false" },
+                    {"da", "true" },
+                    {"sr", "44100" },
+                    {"ss", "16" },
+                    {"pw", "false" },
+                    {"vn", "65537" },
+                    {"tp", "UDP" },
+                    {"vs", "103.2" },
+                    {"am", "XW-SMA4" },
+                    {"fv", "s1051.1000.0" },
+                },
+            };
+
+            IPAddress addr = IPAddress.Parse("192.168.1.23");
+            Response claim = Publisher.MakeClaimPacket(pub, addr);
+            if (0 != CheckClaim(claim))
+                return 1;
+
+            return 0;
+        }
+
+        static int CheckClaim(Response response)
+        {
+            // For now, just hex dump the claim packet so I can inspect it manually.
+            var writer = new RecordWriter();
+            response.Write(writer);
+            byte[] data = writer.GetData();
+
+            Console.WriteLine();
+            Console.WriteLine("Claim packet:");
+            HexDump(data);
+            Console.WriteLine();
+
+            return 0;
+        }
+
+        static int Announce()
+        {
             return 0;
         }
     }

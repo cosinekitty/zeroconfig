@@ -56,6 +56,10 @@ namespace Heijden.DNS
 
         public void Write(RecordWriter rw)
         {
+            header.QDCOUNT = CheckUInt16(Questions.Count);
+            header.ANCOUNT = CheckUInt16(Answers.Count);
+            header.NSCOUNT = CheckUInt16(Authorities.Count);
+            header.ARCOUNT = CheckUInt16(Additionals.Count);
             header.Write(rw);
 
             foreach (Question q in Questions)
@@ -69,6 +73,14 @@ namespace Heijden.DNS
 
             foreach (RR a in Additionals)
                 a.Write(rw);
+        }
+
+        private static ushort CheckUInt16(int value)
+        {
+            if (value < ushort.MinValue || value > ushort.MaxValue)
+                throw new ArgumentException($"Value is outside the range allowed for uint16: {value}");
+
+            return (ushort)value;
         }
     }
 }

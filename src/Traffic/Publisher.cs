@@ -105,10 +105,10 @@ namespace CosineKitty.ZeroConfigWatcher
             response.Questions.Add(new Question(localShortName, QType.ANY, QClass.IN));
 
             var srv = new RecordSRV(0, 0, service.Port, service.ShortName);
-            response.Answers.Add(new RR(fqLongName, ShortTimeToLive, srv));
+            response.Authorities.Add(new RR(fqLongName, ShortTimeToLive, srv));
 
             var arec = new RecordA(serverIpAddress.GetAddressBytes());
-            response.Additionals.Add(new RR(service.ShortName, ShortTimeToLive, arec));
+            response.Authorities.Add(new RR(localShortName, ShortTimeToLive, arec));
 
             return response;
         }
@@ -163,13 +163,13 @@ namespace CosineKitty.ZeroConfigWatcher
             response.Additionals.Add(new RR(fqLongName, LongTimeToLive, txt));
 
             var arec = new RecordA(serverIpAddress.GetAddressBytes());
-            response.Additionals.Add(new RR(service.ShortName, ShortTimeToLive, arec));
+            response.Additionals.Add(new RR(localShortName, ShortTimeToLive, arec));
 
             var nsec1 = new RecordNSEC(fqLongName, Heijden.DNS.Type.NSAPPTR, Heijden.DNS.Type.A6);
             response.Additionals.Add(new RR(fqLongName, ShortTimeToLive, nsec1));
 
             var nsec2 = new RecordNSEC(service.ShortName, Heijden.DNS.Type.SOA);
-            response.Additionals.Add(new RR(service.ShortName, ShortTimeToLive, nsec2));
+            response.Additionals.Add(new RR(localShortName, ShortTimeToLive, nsec2));
 
             return response;
         }
