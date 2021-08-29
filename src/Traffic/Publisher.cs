@@ -98,7 +98,7 @@ namespace CosineKitty.ZeroConfigWatcher
 
             var response = new Response();
 
-            string fqLongName = service.LongName + service.ServiceType;     // "745E1C22FAFD@Living Room._raop._tcp.local."
+            string fqLongName = service.LongName + "." + service.ServiceType;     // "745E1C22FAFD@Living Room._raop._tcp.local."
             string localShortName = LocalQualify(service.ShortName);        // "Living-Room.local."
 
             response.Questions.Add(new Question(fqLongName, QType.ANY, QClass.IN));
@@ -150,13 +150,13 @@ namespace CosineKitty.ZeroConfigWatcher
             // NSEC Living-Room.local. [SOA]
 
             var response = new Response();
-            string fqLongName = service.LongName + service.ServiceType;     // "745E1C22FAFD@Living Room._raop._tcp.local."
+            string fqLongName = service.LongName + "." + service.ServiceType;     // "745E1C22FAFD@Living Room._raop._tcp.local."
             string localShortName = LocalQualify(service.ShortName);        // "Living-Room.local."
 
             var ptr = new RecordPTR(fqLongName);
             response.Answers.Add(new RR(service.ServiceType, LongTimeToLive, ptr));
 
-            var srv = new RecordSRV(0, 0, service.Port, service.ShortName);
+            var srv = new RecordSRV(0, 0, service.Port, localShortName);
             response.Additionals.Add(new RR(fqLongName, ShortTimeToLive, srv));
 
             var txt = new RecordTXT(service.TxtRecord);
@@ -168,7 +168,7 @@ namespace CosineKitty.ZeroConfigWatcher
             var nsec1 = new RecordNSEC(fqLongName, Heijden.DNS.Type.NSAPPTR, Heijden.DNS.Type.A6);
             response.Additionals.Add(new RR(fqLongName, ShortTimeToLive, nsec1));
 
-            var nsec2 = new RecordNSEC(service.ShortName, Heijden.DNS.Type.SOA);
+            var nsec2 = new RecordNSEC(localShortName, Heijden.DNS.Type.SOA);
             response.Additionals.Add(new RR(localShortName, ShortTimeToLive, nsec2));
 
             return response;

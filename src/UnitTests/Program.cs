@@ -548,9 +548,9 @@ namespace CosineKitty.ZeroConfigWatcher.UnitTests
             return 0;
         }
 
-        static int Claim()
+        static PublishedService MakeTestService()
         {
-            var pub = new PublishedService
+            return new PublishedService
             {
                 Client = null,
                 LongName = "745E1C2300FF@Office",
@@ -575,20 +575,17 @@ namespace CosineKitty.ZeroConfigWatcher.UnitTests
                     {"fv", "s1051.1000.0" },
                 },
             };
-
-            IPAddress addr = IPAddress.Parse("192.168.1.23");
-            Response claim = Publisher.MakeClaimPacket(pub, addr);
-            if (0 != CheckClaim(claim))
-                return 1;
-
-            return 0;
         }
 
-        static int CheckClaim(Response response)
+        static int Claim()
         {
+            var pub = MakeTestService();
+            IPAddress addr = IPAddress.Parse("192.168.1.23");
+            Response claim = Publisher.MakeClaimPacket(pub, addr);
+
             // For now, just hex dump the claim packet so I can inspect it manually.
             var writer = new RecordWriter();
-            response.Write(writer);
+            claim.Write(writer);
             byte[] data = writer.GetData();
 
             Console.WriteLine();
@@ -601,6 +598,20 @@ namespace CosineKitty.ZeroConfigWatcher.UnitTests
 
         static int Announce()
         {
+            var pub = MakeTestService();
+            IPAddress addr = IPAddress.Parse("192.168.1.23");
+            Response announce = Publisher.MakeAnnouncePacket(pub, addr);
+
+            // For now, just hex dump the claim packet so I can inspect it manually.
+            var writer = new RecordWriter();
+            announce.Write(writer);
+            byte[] data = writer.GetData();
+
+            Console.WriteLine();
+            Console.WriteLine("Announce packet:");
+            HexDump(data);
+            Console.WriteLine();
+
             return 0;
         }
     }
