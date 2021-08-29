@@ -10,24 +10,36 @@ namespace PublishTest
         {
             int rc = 1;
             var service = new FakeService();
-            using (var publisher = new Publisher())
+            using (var monitor = new TrafficMonitor())
             {
-                var txtRecord = new Dictionary<string, string>
+                monitor.Start();
+                using (var publisher = new Publisher(monitor))
                 {
-                    { "screwdriver", "phillips" },
-                    { "size", "13.7" },
-                    { "color", "orange" },
-                };
+                    var pub = new PublishedService
+                    {
+                        Client = service,
+                        LongName = "012345678@Walter White",
+                        ShortName = "heisenberg",
+                        ServiceType = "_fakeservice._tcp.local.",
+                        Port = 9456,
+                        TxtRecord = new Dictionary<string, string>
+                        {
+                            { "screwdriver", "phillips" },
+                            { "size", "13.7" },
+                            { "color", "orange" },
+                        },
+                    };
 
-                if (publisher.Publish(service, "heisenberg", "_fakeservice._tcp", 9456, txtRecord))
-                {
-                    Console.WriteLine("Publish succeeded. Press ENTER to unpublish and exit.");
-                    Console.ReadLine();
-                    rc = 0;
-                }
-                else
-                {
-                    Console.WriteLine("ERROR: Publish failed.");
+                    if (publisher.Publish(pub))
+                    {
+                        Console.WriteLine("Publish succeeded. Press ENTER to unpublish and exit.");
+                        Console.ReadLine();
+                        rc = 0;
+                    }
+                    else
+                    {
+                        Console.WriteLine("ERROR: Publish failed.");
+                    }
                 }
             }
             return rc;

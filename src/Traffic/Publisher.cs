@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using Heijden.DNS;
 
 namespace CosineKitty.ZeroConfigWatcher
@@ -8,33 +9,29 @@ namespace CosineKitty.ZeroConfigWatcher
     public class Publisher : IDisposable
     {
         private readonly Dictionary<string, PublishedService> table = new Dictionary<string, PublishedService>();
+        private readonly TrafficMonitor trafficMonitor;
+
+        private const uint LongTimeToLive = 4500;
+        private const uint ShortTimeToLive = 120;
+
+        public Publisher(TrafficMonitor monitor)
+        {
+            trafficMonitor = monitor;
+        }
 
         public void Dispose()
         {
             UnpublishAll();
         }
 
-        public bool Publish(
-            IPublishClient client,
-            string name,
-            string serviceType,
-            int port,
-            Dictionary<string, string> txtRecord)
+        public bool Publish(PublishedService service)
         {
             // Unpublish any obsolete version of this service name.
-            Unpublish(name);
-
-            var service = new PublishedService
-            {
-                Client = client,
-                Name = name,
-                ServiceType = serviceType,
-                TxtRecord = txtRecord,
-            };
+            Unpublish(service.LongName);
 
             lock (table)
             {
-                table[name] = service;
+                table[service.LongName] = service;
             }
 
             Advertise(service);
@@ -42,14 +39,14 @@ namespace CosineKitty.ZeroConfigWatcher
             return true;
         }
 
-        public void Unpublish(string name)
+        public void Unpublish(string longName)
         {
             PublishedService service;
 
             lock (table)
             {
-                if (table.TryGetValue(name, out service))
-                    table.Remove(name);
+                if (table.TryGetValue(longName, out service))
+                    table.Remove(longName);
             }
 
             if (service != null)
@@ -70,6 +67,53 @@ namespace CosineKitty.ZeroConfigWatcher
         }
 
         private void Advertise(PublishedService service)
+        {
+            IPAddress serverIpAddress = TrafficMonitor.GetServerIPAddress();
+            Response response = MakeAnnouncePacket(service, serverIpAddress);
+            trafficMonitor.Broadcast(response);
+        }
+
+        private static string LocalQualify(string shortName)
+        {
+            if (!shortName.EndsWith(".local."))
+                return shortName + ".local.";
+            return shortName;
+        }
+
+        private void ExpireNow(PublishedService service)
+        {
+            // Broadcast a notification but with an expiration time of 0 seconds.
+        }
+
+        public static Response MakeClaimPacket(PublishedService service, IPAddress serverIpAddress)
+        {
+            // Question: name=[745E1C2300FF@Office._raop._tcp.local.] type=ANY class=IN
+            // Question: name=[Office.local.] type=ANY class=IN
+            //
+            // RR: name=[745E1C2300FF@Office._raop._tcp.local.] type=SRV class=IN TTL=120
+            // 0 0 1024 Office.local.
+            //
+            // RR: name=[Office.local.] type=A class=IN TTL=120
+            // 192.168.1.7
+
+            var response = new Response();
+
+            string fqLongName = service.LongName + service.ServiceType;     // "745E1C22FAFD@Living Room._raop._tcp.local."
+            string localShortName = LocalQualify(service.ShortName);        // "Living-Room.local."
+
+            response.Questions.Add(new Question(fqLongName, QType.ANY, QClass.IN));
+            response.Questions.Add(new Question(localShortName, QType.ANY, QClass.IN));
+
+            var srv = new RecordSRV(0, 0, service.Port, service.ShortName);
+            response.Answers.Add(new RR(fqLongName, ShortTimeToLive, srv));
+
+            var arec = new RecordA(serverIpAddress.GetAddressBytes());
+            response.Additionals.Add(new RR(service.ShortName, ShortTimeToLive, arec));
+
+            return response;
+        }
+
+        public static Response MakeAnnouncePacket(PublishedService service, IPAddress serverIpAddress)
         {
             // When someone sends a question PTR for [_raop._tcp.local.],
             // We should respond with something like this:
@@ -105,11 +149,29 @@ namespace CosineKitty.ZeroConfigWatcher
             // AdditionalRR: name=[Living-Room.local.] type=NSEC class=32769 TTL=120
             // NSEC Living-Room.local. [SOA]
 
-        }
+            var response = new Response();
+            string fqLongName = service.LongName + service.ServiceType;     // "745E1C22FAFD@Living Room._raop._tcp.local."
+            string localShortName = LocalQualify(service.ShortName);        // "Living-Room.local."
 
-        private void ExpireNow(PublishedService service)
-        {
-            // Broadcast a notification but with an expiration time of 0 seconds.
+            var ptr = new RecordPTR(fqLongName);
+            response.Answers.Add(new RR(service.ServiceType, LongTimeToLive, ptr));
+
+            var srv = new RecordSRV(0, 0, service.Port, service.ShortName);
+            response.Additionals.Add(new RR(fqLongName, ShortTimeToLive, srv));
+
+            var txt = new RecordTXT(service.TxtRecord);
+            response.Additionals.Add(new RR(fqLongName, LongTimeToLive, txt));
+
+            var arec = new RecordA(serverIpAddress.GetAddressBytes());
+            response.Additionals.Add(new RR(service.ShortName, ShortTimeToLive, arec));
+
+            var nsec1 = new RecordNSEC(fqLongName, Heijden.DNS.Type.NSAPPTR, Heijden.DNS.Type.A6);
+            response.Additionals.Add(new RR(fqLongName, ShortTimeToLive, nsec1));
+
+            var nsec2 = new RecordNSEC(service.ShortName, Heijden.DNS.Type.SOA);
+            response.Additionals.Add(new RR(service.ShortName, ShortTimeToLive, nsec2));
+
+            return response;
         }
     }
 }

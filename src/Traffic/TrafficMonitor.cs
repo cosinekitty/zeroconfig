@@ -20,6 +20,87 @@ namespace CosineKitty.ZeroConfigWatcher
 
         public event TrafficEventHandler OnReceive;
 
+        private static bool IsWireless(IPAddress ip)
+        {
+            if (ip != null)
+            {
+                foreach (NetworkInterface nic in NetworkInterface.GetAllNetworkInterfaces())
+                {
+                    for (int i = 0; i < nic.GetIPProperties().UnicastAddresses.Count; i++)
+                    {
+                        if (nic.GetIPProperties().UnicastAddresses[i].Address.Equals(ip))
+                        {
+                            return (nic.NetworkInterfaceType == NetworkInterfaceType.Wireless80211);
+                        }
+                    }
+                }
+            }
+            return false;
+        }
+
+        private static readonly object ipLock = new object();
+        private static IPAddress stickyEthernetIpAddress;
+        private static IPAddress stickyWifiIpAddress;
+
+        public static IPAddress GetServerIPAddress()
+        {
+            lock (ipLock)
+            {
+                IPAddress[] IPAddresses = Dns.GetHostAddresses("");
+                if (IPAddresses != null)
+                {
+                    var ethernetList = new List<IPAddress>();
+                    var wifiList = new List<IPAddress>();
+
+                    foreach (IPAddress ip in IPAddresses)
+                    {
+                        if (ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork && !IPAddress.IsLoopback(ip))
+                        {
+                            if (IsWireless(ip))
+                                wifiList.Add(ip);
+                            else
+                                ethernetList.Add(ip);
+                        }
+                    }
+
+                    // If there are any ethernet (wired) addresses, pick one.
+                    // Any ethernet address is preferred over any wifi address.
+                    if (ethernetList.Count > 0)
+                    {
+                        // If we have already started using a particular ethernet address,
+                        // make it sticky and keep using it, if that address is still available.
+                        // We do this just in case the order of the entries in IPAddresses changes.
+                        if (stickyEthernetIpAddress != null)
+                            foreach (IPAddress ip in ethernetList)
+                                if (ip.Equals(stickyEthernetIpAddress))
+                                    return ip;
+
+                        // We could not re-use the sticky ethernet address.
+                        // Pick the first one we find, and switch to it as a new sticky address.
+                        stickyEthernetIpAddress = ethernetList[0];
+                        return stickyEthernetIpAddress;
+                    }
+
+                    // We could not find any wired (ethernet) addresses to use.
+                    // Fall back to a wireless (wifi) address.
+                    if (wifiList.Count > 0)
+                    {
+                        if (stickyWifiIpAddress != null)
+                            foreach (IPAddress ip in wifiList)
+                                if (ip.Equals(stickyWifiIpAddress))
+                                    return ip;
+
+                        // We could not re-use the sticky ethernet address.
+                        // Pick the first one we find, and switch to it as a new sticky address.
+                        stickyWifiIpAddress = wifiList[0];
+                        return stickyWifiIpAddress;
+                    }
+                }
+
+                return null;
+            }
+        }
+
         public void Start()
         {
             lock (mutex)
@@ -55,17 +136,30 @@ namespace CosineKitty.ZeroConfigWatcher
             }
         }
 
-        public void Broadcast(Request request)
+        public void Broadcast(byte[] datagram)
         {
             var broadcastEndpoint = new IPEndPoint(IPAddress.Parse("224.0.0.251"), 5353);
             lock (mutex)
             {
                 foreach (UdpClient client in clientList)
-                {
-                    byte[] datagram = request.Data;
                     client.BeginSend(datagram, datagram.Length, broadcastEndpoint, null, null);
-                }
             }
+        }
+
+        public void Broadcast(Response response)
+        {
+            var writer = new RecordWriter();
+            response.Write(writer);
+            byte[] datagram = writer.GetData();
+            Broadcast(datagram);
+        }
+
+        public void Broadcast(Request request)
+        {
+            var writer = new RecordWriter();
+            request.Write(writer);
+            byte[] datagram = writer.GetData();
+            Broadcast(datagram);
         }
 
         private static UdpClient[] MakeClientList()
