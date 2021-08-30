@@ -2,15 +2,22 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
-using System.Threading;
+using System.Timers;
 using Heijden.DNS;
 
 namespace CosineKitty.ZeroConfigWatcher
 {
     public class Publisher : IDisposable
     {
-        private readonly Dictionary<string, PublishedService> table = new Dictionary<string, PublishedService>();
+        private readonly Dictionary<string, PublishContext> table = new Dictionary<string, PublishContext>();
         private readonly TrafficMonitor trafficMonitor;
+        private bool closing;
+        private readonly Timer timer = new Timer
+        {
+            Interval = 500.0,
+            AutoReset = false,
+            Enabled = true,
+        };
 
         private const uint LongTimeToLive = 4500;
         private const uint ShortTimeToLive = 120;
@@ -18,70 +25,114 @@ namespace CosineKitty.ZeroConfigWatcher
         public Publisher(TrafficMonitor monitor)
         {
             trafficMonitor = monitor;
+            timer.Elapsed += OnTimerTick;
         }
 
         public void Dispose()
         {
+            closing = true;
             UnpublishAll();
+            timer.Elapsed -= OnTimerTick;
+            timer.Dispose();
+        }
+
+        private void OnTimerTick(object sender, ElapsedEventArgs e)
+        {
+            lock (table)
+            {
+                foreach (PublishContext context in table.Values)
+                {
+                    switch (context.State)
+                    {
+                        case PublishState.Announce1:
+                            if (--context.Countdown == 0)
+                            {
+                                trafficMonitor.Broadcast(context.AnnouncePacket);
+                                context.State = PublishState.Announce2;
+                                context.Countdown = 1;
+                            }
+                            break;
+
+                        case PublishState.Announce2:
+                            if (--context.Countdown == 0)
+                            {
+                                trafficMonitor.Broadcast(context.AnnouncePacket);
+                                context.State = PublishState.Announce3;
+                                context.Countdown = 4;
+                            }
+                            break;
+
+                        case PublishState.Announce3:
+                            if (--context.Countdown == 0)
+                            {
+                                trafficMonitor.Broadcast(context.AnnouncePacket);
+                                context.State = PublishState.Ready;
+                                context.Countdown = 8;
+                            }
+                            break;
+
+                        case PublishState.Ready:
+                            break;
+                    }
+                }
+            }
+            timer.Start();  // schedule next timer tick
         }
 
         public bool Publish(PublishedService service)
         {
+            if (closing)
+                return false;
+
             // Unpublish any obsolete version of this service name.
             Unpublish(service.LongName);
 
+            IPAddress serverIpAddress = TrafficMonitor.GetServerIPAddress();
+
+            var context = new PublishContext
+            {
+                Service = service,
+                State = PublishState.Announce1,
+                Countdown = 2,
+                AnnouncePacket = MakeAnnouncePacket(service, serverIpAddress),
+            };
+
+            Response claim = MakeClaimPacket(context.Service, serverIpAddress);
+            trafficMonitor.Broadcast(claim);
+
             lock (table)
             {
-                table[service.LongName] = service;
+                table[service.LongName] = context;
             }
-
-            Advertise(service);
 
             return true;
         }
 
         public void Unpublish(string longName)
         {
-            PublishedService service;
+            PublishContext context;
 
             lock (table)
             {
-                if (table.TryGetValue(longName, out service))
+                if (table.TryGetValue(longName, out context))
                     table.Remove(longName);
             }
 
-            if (service != null)
-                ExpireNow(service);
+            if (context != null)
+                ExpireNow(context);
         }
 
         public void UnpublishAll()
         {
-            PublishedService[] all;
+            PublishContext[] all;
             lock (table)
             {
                 all = table.Values.ToArray();
                 table.Clear();
             }
 
-            foreach (PublishedService service in all)
-                ExpireNow(service);
-        }
-
-        private void Advertise(PublishedService service)
-        {
-            IPAddress serverIpAddress = TrafficMonitor.GetServerIPAddress();
-            Response claim = MakeClaimPacket(service, serverIpAddress);
-            Response announce = MakeAnnouncePacket(service, serverIpAddress);
-
-            trafficMonitor.Broadcast(claim);
-            Thread.Sleep(1000);
-            trafficMonitor.Broadcast(announce);
-            Thread.Sleep(500);
-            trafficMonitor.Broadcast(announce);
-            Thread.Sleep(2000);
-            trafficMonitor.Broadcast(announce);
-            Thread.Sleep(4000);
-            trafficMonitor.Broadcast(announce);
+            foreach (PublishContext context in all)
+                ExpireNow(context);
         }
 
         private static string LocalQualify(string shortName)
@@ -91,7 +142,7 @@ namespace CosineKitty.ZeroConfigWatcher
             return shortName;
         }
 
-        private void ExpireNow(PublishedService service)
+        private void ExpireNow(PublishContext context)
         {
             // Broadcast a notification but with an expiration time of 0 seconds.
         }
@@ -190,5 +241,21 @@ namespace CosineKitty.ZeroConfigWatcher
             string rev = string.Join(".", serverIpAddress.GetAddressBytes().Reverse().Select(b => b.ToString()));
             return rev + ".in-addr.arpa.";
         }
+    }
+
+    internal enum PublishState
+    {
+        Announce1,
+        Announce2,
+        Announce3,
+        Ready,
+    }
+
+    internal class PublishContext
+    {
+        public PublishedService Service;
+        public PublishState State;
+        public int Countdown;
+        public Response AnnouncePacket;
     }
 }
