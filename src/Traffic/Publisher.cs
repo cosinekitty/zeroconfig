@@ -30,8 +30,27 @@ namespace CosineKitty.ZeroConfigWatcher
 
         public void Dispose()
         {
-            closing = true;
-            UnpublishAll();
+            closing = true;     // prevent publishing anything new
+
+            // Get a list of all published names.
+            string[] allNames;
+            lock (table)
+                allNames = table.Keys.ToArray();
+
+            // Begin the process of unpublishing every published item.
+            foreach (string name in allNames)
+                Unpublish(name);
+
+            // Wait for background unpublish to complete and remove all the items.
+            int count = 1;
+            while (count != 0)
+            {
+                System.Threading.Thread.Sleep(100);
+                lock (table)
+                    count = table.Count;
+            }
+
+            timer.Stop();
             timer.Elapsed -= OnTimerTick;
             timer.Dispose();
         }
@@ -40,6 +59,8 @@ namespace CosineKitty.ZeroConfigWatcher
         {
             lock (table)
             {
+                List<string> deletionList = null;
+
                 foreach (PublishContext context in table.Values)
                 {
                     switch (context.State)
@@ -73,8 +94,33 @@ namespace CosineKitty.ZeroConfigWatcher
 
                         case PublishState.Ready:
                             break;
+
+                        case PublishState.Unpublish2:
+                            if (--context.Countdown == 0)
+                            {
+                                trafficMonitor.Broadcast(context.UnpublishPacket);
+                                context.State = PublishState.Unpublish3;
+                                context.Countdown = 2;
+                            }
+                            break;
+
+                        case PublishState.Unpublish3:
+                            if (--context.Countdown == 0)
+                            {
+                                trafficMonitor.Broadcast(context.UnpublishPacket);
+                                // Put into separate deletion list so we don't mutate the dictionary while enumerating.
+                                if (deletionList == null)
+                                    deletionList = new List<string>();
+                                deletionList.Add(context.Service.LongName);
+                            }
+                            break;
                     }
                 }
+
+                // Remove all completely-unpublished services.
+                if (deletionList != null)
+                    foreach (string longName in deletionList)
+                        table.Remove(longName);
             }
             timer.Start();  // schedule next timer tick
         }
@@ -84,9 +130,6 @@ namespace CosineKitty.ZeroConfigWatcher
             if (closing)
                 return false;
 
-            // Unpublish any obsolete version of this service name.
-            Unpublish(service.LongName);
-
             IPAddress serverIpAddress = TrafficMonitor.GetServerIPAddress();
 
             var context = new PublishContext
@@ -95,6 +138,7 @@ namespace CosineKitty.ZeroConfigWatcher
                 State = PublishState.Announce1,
                 Countdown = 2,
                 AnnouncePacket = MakeAnnouncePacket(service, serverIpAddress),
+                UnpublishPacket = MakeUnpublishPacket(service),
             };
 
             Message claim = MakeClaimPacket(context.Service, serverIpAddress);
@@ -110,29 +154,21 @@ namespace CosineKitty.ZeroConfigWatcher
 
         public void Unpublish(string longName)
         {
-            PublishContext context;
-
             lock (table)
             {
-                if (table.TryGetValue(longName, out context))
-                    table.Remove(longName);
+                if (table.TryGetValue(longName, out PublishContext context))
+                {
+                    if (context.State != PublishState.Unpublish2 && context.State != PublishState.Unpublish3)
+                    {
+                        // Send first unpublish message.
+                        trafficMonitor.Broadcast(context.UnpublishPacket);
+
+                        // Set state for remaining 2 unpublish messages.
+                        context.State = PublishState.Unpublish2;
+                        context.Countdown = 2;
+                    }
+                }
             }
-
-            if (context != null)
-                ExpireNow(context);
-        }
-
-        public void UnpublishAll()
-        {
-            PublishContext[] all;
-            lock (table)
-            {
-                all = table.Values.ToArray();
-                table.Clear();
-            }
-
-            foreach (PublishContext context in all)
-                ExpireNow(context);
         }
 
         private static string LocalQualify(string shortName)
@@ -140,13 +176,6 @@ namespace CosineKitty.ZeroConfigWatcher
             if (!shortName.EndsWith(".local."))
                 return shortName + ".local.";
             return shortName;
-        }
-
-        private void ExpireNow(PublishContext context)
-        {
-            // Broadcast a notification but with an expiration time of 0 seconds.
-            Message message = MakeUnpublishPacket(context.Service);
-            trafficMonitor.Broadcast(message);
         }
 
         public static Message MakeClaimPacket(PublishedService service, IPAddress serverIpAddress)
@@ -267,6 +296,8 @@ namespace CosineKitty.ZeroConfigWatcher
         Announce2,
         Announce3,
         Ready,
+        Unpublish2,
+        Unpublish3,
     }
 
     internal class PublishContext
@@ -275,5 +306,6 @@ namespace CosineKitty.ZeroConfigWatcher
         public PublishState State;
         public int Countdown;
         public Message AnnouncePacket;
+        public Message UnpublishPacket;
     }
 }
