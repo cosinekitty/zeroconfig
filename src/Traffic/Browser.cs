@@ -116,9 +116,9 @@ namespace CosineKitty.ZeroConfigWatcher
             // announce themselves. This probably only needs to be called
             // once at startup.
             serviceType = AddLocalSuffix(serviceType);
-            var request = new Response();
-            request.Questions.Add(new Question(serviceType, QType.PTR, QClass.IN));
-            monitor.Broadcast(request);
+            var message = new Message();
+            message.Questions.Add(new Question(serviceType, QType.PTR, QClass.IN));
+            monitor.Broadcast(message);
         }
 
         public ServiceBrowseResult[] Browse(string serviceType)
@@ -224,22 +224,24 @@ namespace CosineKitty.ZeroConfigWatcher
 
         private void OnPacket(object sender, Packet packet)
         {
-            var response = new Response(packet.Data);
+            var message = new Message(packet.Data);
 
-            /*
-            foreach (Question q in response.Questions)
-            {
-            }
-            */
+            foreach (Question question in message.Questions)
+                Process(question);
 
-            foreach (RR answer in response.Answers)
+            foreach (RR answer in message.Answers)
                 Process(answer);
 
-            foreach (RR answer in response.Authorities)
+            foreach (RR answer in message.Authorities)
                 Process(answer);
 
-            foreach (RR answer in response.Additionals)
+            foreach (RR answer in message.Additionals)
                 Process(answer);
+        }
+
+        private void Process(Question question)
+        {
+            // do nothing (yet)
         }
 
         private void Process(RR answer)

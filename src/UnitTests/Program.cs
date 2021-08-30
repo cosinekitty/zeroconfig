@@ -115,7 +115,7 @@ namespace CosineKitty.ZeroConfigWatcher.UnitTests
             new Test("ReadWrite_PTR", ReadWrite_PTR),
             new Test("ReadWrite_SRV", ReadWrite_SRV),
             new Test("ReadWrite_TXT", ReadWrite_TXT),
-            new Test("ResponseRoundTrip", ResponseRoundTrip),
+            new Test("MessageRoundTrip", MessageRoundTrip),
             new Test("Claim", Claim),
             new Test("Announce", Announce),
         };
@@ -380,7 +380,7 @@ namespace CosineKitty.ZeroConfigWatcher.UnitTests
             return Fail($"Reconstituted record is of incorrect type {copy.RECORD.GetType()}");
         }
 
-        static int ResponseRoundTrip()
+        static int MessageRoundTrip()
         {
             // An actual packet from my AirPlay speaker [Living Room].
             var packet = new byte[]
@@ -405,8 +405,8 @@ namespace CosineKitty.ZeroConfigWatcher.UnitTests
                 0x00, 0x2f, 0x80, 0x01, 0x00, 0x00, 0x00, 0x78, 0x00, 0x05, 0xc0, 0x55, 0x00, 0x01, 0x40        // ./.....x...U..@
             };
 
-            // Deserialize the packet into a Response object.
-            var original = new Response(packet);
+            // Deserialize the packet into a Message object.
+            var original = new Message(packet);
             if (0 != CheckLivingRoomAirPlaySpeaker(original))
                 return 1;
 
@@ -418,33 +418,33 @@ namespace CosineKitty.ZeroConfigWatcher.UnitTests
             // I can't just compare copyData[] to packet[], because original
             // data does not follow the spec for suppressing domain name configuration.
             // So I re-deserialize it and verify it the same way as the original.
-            var copy = new Response(copyData);
+            var copy = new Message(copyData);
             if (0 != CheckLivingRoomAirPlaySpeaker(copy))
                 return 1;
 
             return 0;
         }
 
-        static int CheckLivingRoomAirPlaySpeaker(Response response)
+        static int CheckLivingRoomAirPlaySpeaker(Message message)
         {
-            if (response.Questions.Count != 0)
-                return Fail($"Expected 0 questions but found {response.Questions.Count}");
+            if (message.Questions.Count != 0)
+                return Fail($"Expected 0 questions but found {message.Questions.Count}");
 
-            if (response.Answers.Count != 1)
-                return Fail($"Expected 1 answer but found {response.Answers.Count}");
+            if (message.Answers.Count != 1)
+                return Fail($"Expected 1 answer but found {message.Answers.Count}");
 
-            if (response.Authorities.Count != 0)
-                return Fail($"Expected 0 authorities but found {response.Authorities.Count}");
+            if (message.Authorities.Count != 0)
+                return Fail($"Expected 0 authorities but found {message.Authorities.Count}");
 
-            if (response.Additionals.Count != 5)
-                return Fail($"Expected 5 additionals but found {response.Additionals.Count}");
+            if (message.Additionals.Count != 5)
+                return Fail($"Expected 5 additionals but found {message.Additionals.Count}");
 
             const string FullName = "745E1C22FAFD@Living Room._raop._tcp.local.";
             const string ShortName = "Living-Room.local.";
 
             // Answer 0
 
-            RR r = response.Answers[0];
+            RR r = message.Answers[0];
             if (r.NAME != "_raop._tcp.local.")
                 return Fail("Incorrect Answers[0].NAME");
 
@@ -457,7 +457,7 @@ namespace CosineKitty.ZeroConfigWatcher.UnitTests
                 return Fail("Answers[0] should have been PTR type.");
 
             // Additional 0
-            r = response.Additionals[0];
+            r = message.Additionals[0];
             if (r.NAME != FullName)
                 return Fail("Additionals[0] has incorrect name.");
 
@@ -471,7 +471,7 @@ namespace CosineKitty.ZeroConfigWatcher.UnitTests
                 return Fail("Additionals[0] should have been SRV.");
 
             // Additional 1
-            r = response.Additionals[1];
+            r = message.Additionals[1];
             if (r.NAME != FullName)
                 return Fail("Additionals[1] has incorrect name.");
 
@@ -505,7 +505,7 @@ namespace CosineKitty.ZeroConfigWatcher.UnitTests
                 return Fail("Additionals[1] should have been TXT.");
 
             // Additional 2
-            r = response.Additionals[2];
+            r = message.Additionals[2];
             if (r.NAME != ShortName)
                 return Fail($"Additional[2] name should have been '{ShortName}' but found '{r.NAME}'.");
 
@@ -518,7 +518,7 @@ namespace CosineKitty.ZeroConfigWatcher.UnitTests
                 return Fail("Additionals[2] should have been type A.");
 
             // Additional 3
-            r = response.Additionals[3];
+            r = message.Additionals[3];
             if (r.NAME != FullName)
                 return Fail("Additionals[3] has incorrect name.");
 
@@ -532,7 +532,7 @@ namespace CosineKitty.ZeroConfigWatcher.UnitTests
                 return Fail("Additionals[3] should have been NSEC.");
 
             // Additional 4
-            r = response.Additionals[4];
+            r = message.Additionals[4];
             if (r.NAME != ShortName)
                 return Fail("Additionals[4] has incorrect name.");
 
@@ -581,7 +581,7 @@ namespace CosineKitty.ZeroConfigWatcher.UnitTests
         {
             var pub = MakeTestService();
             IPAddress addr = IPAddress.Parse("192.168.1.23");
-            Response claim = Publisher.MakeClaimPacket(pub, addr);
+            Message claim = Publisher.MakeClaimPacket(pub, addr);
 
             // For now, just hex dump the claim packet so I can inspect it manually.
             var writer = new RecordWriter();
@@ -600,7 +600,7 @@ namespace CosineKitty.ZeroConfigWatcher.UnitTests
         {
             var pub = MakeTestService();
             IPAddress addr = IPAddress.Parse("192.168.1.23");
-            Response announce = Publisher.MakeAnnouncePacket(pub, addr);
+            Message announce = Publisher.MakeAnnouncePacket(pub, addr);
 
             // For now, just hex dump the claim packet so I can inspect it manually.
             var writer = new RecordWriter();

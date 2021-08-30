@@ -146,10 +146,10 @@ namespace CosineKitty.ZeroConfigWatcher
             }
         }
 
-        public void Broadcast(Response response)
+        public void Broadcast(Message message)
         {
             var writer = new RecordWriter();
-            response.Write(writer);
+            message.Write(writer);
             byte[] datagram = writer.GetData();
             Broadcast(datagram);
         }

@@ -71,18 +71,18 @@ namespace Watcher
 
         static void Interpret(byte[] data)
         {
-            var response = new Response(data);
+            var message = new Message(data);
 
-            foreach (Question q in response.Questions)
+            foreach (Question q in message.Questions)
                 PrintQuestion(q);
 
-            foreach (RR a in response.Answers)
+            foreach (RR a in message.Answers)
                 PrintRR(a);
 
-            foreach (RR a in response.Authorities)
+            foreach (RR a in message.Authorities)
                 PrintRR(a);
 
-            foreach (RR a in response.Additionals)
+            foreach (RR a in message.Additionals)
                 PrintRR(a);
         }
 

@@ -1,37 +1,30 @@
 using System;
-using System.IO;
-using System.Net;
-using System.Collections;
 using System.Collections.Generic;
-using System.Text;
 
 namespace Heijden.DNS
 {
-    public class Response
+    public class Message
     {
+        public Header header;
         public List<Question> Questions;
         public List<RR> Answers;
         public List<RR> Authorities;
         public List<RR> Additionals;
-        public Header header;
-        public int MessageSize;
         public DateTime TimeStamp;
 
-        public Response()
+        public Message()
         {
             Questions = new List<Question>();
             Answers = new List<RR>();
             Authorities = new List<RR>();
             Additionals = new List<RR>();
-            MessageSize = 0;
             TimeStamp = DateTime.Now;
             header = new Header();
         }
 
-        public Response(byte[] data)
+        public Message(byte[] data)
         {
             TimeStamp = DateTime.Now;
-            MessageSize = data.Length;
             var rr = new RecordReader(data);
 
             Questions = new List<Question>();
