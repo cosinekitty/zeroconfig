@@ -145,6 +145,8 @@ namespace CosineKitty.ZeroConfigWatcher
         private void ExpireNow(PublishContext context)
         {
             // Broadcast a notification but with an expiration time of 0 seconds.
+            Message message = MakeUnpublishPacket(context.Service);
+            trafficMonitor.Broadcast(message);
         }
 
         public static Message MakeClaimPacket(PublishedService service, IPAddress serverIpAddress)
@@ -231,6 +233,22 @@ namespace CosineKitty.ZeroConfigWatcher
             // NSEC Office.local. [SOA]
             var nsec2 = new RecordNSEC(localShortName, Heijden.DNS.Type.SOA);
             message.Additionals.Add(new RR(localShortName, ShortTimeToLive, nsec2) { Class = (Class)0x8001 });
+
+            return message;
+        }
+
+        public static Message MakeUnpublishPacket(PublishedService service)
+        {
+            string fqLongName = service.LongName + "." + service.ServiceType;     // "745E1C22FAFD@Living Room._raop._tcp.local."
+
+            var message = new Message();
+            message.header.QR = true;  // this is a response, not a question
+            message.header.AA = true;  // this is an authoritative answer
+
+            // FIXFIXFIX: With a little caution, we can create a single message for unpublishing multiple services.
+
+            var ptr = new RecordPTR(fqLongName);
+            message.Answers.Add(new RR(service.ServiceType, 0, ptr));
 
             return message;
         }
