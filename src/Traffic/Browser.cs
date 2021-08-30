@@ -116,8 +116,8 @@ namespace CosineKitty.ZeroConfigWatcher
             // announce themselves. This probably only needs to be called
             // once at startup.
             serviceType = AddLocalSuffix(serviceType);
-            var request = new Request();
-            request.AddQuestion(new Question(serviceType, QType.PTR, QClass.IN));
+            var request = new Response();
+            request.Questions.Add(new Question(serviceType, QType.PTR, QClass.IN));
             monitor.Broadcast(request);
         }
 

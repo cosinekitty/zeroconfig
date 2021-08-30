@@ -154,14 +154,6 @@ namespace CosineKitty.ZeroConfigWatcher
             Broadcast(datagram);
         }
 
-        public void Broadcast(Request request)
-        {
-            var writer = new RecordWriter();
-            request.Write(writer);
-            byte[] datagram = writer.GetData();
-            Broadcast(datagram);
-        }
-
         private static UdpClient[] MakeClientList()
         {
             NetworkInterface[] adapterList = GetMulticastAdapterList();
