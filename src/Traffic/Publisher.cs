@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Net;
 using System.Timers;
@@ -90,12 +91,45 @@ namespace CosineKitty.ZeroConfigWatcher
                             {
                                 trafficMonitor.Broadcast(context.AnnouncePacket);
                                 context.State = PublishState.Ready;
-                                context.Countdown = 8;
+                                context.Elapsed.Restart();
+                                context.Countdown = 2;  // helps control TTL re-announcements
                             }
                             break;
 
                         case PublishState.Ready:
-                            // FIXFIXFIX: If TTL is close to expiring, re-publish.
+                            // If TTL is close to expiring, re-publish.
+                            {
+                                double targetSeconds;
+                                switch (context.Countdown)
+                                {
+                                    case 2:
+                                        targetSeconds = 0.5 * context.TimeToLiveSeconds;
+                                        break;
+
+                                    case 1:
+                                        targetSeconds = 0.9 * context.TimeToLiveSeconds;
+                                        break;
+
+                                    case 0:
+                                    default:
+                                        targetSeconds = 0.95 * context.TimeToLiveSeconds;
+                                        break;
+                                }
+
+                                double elapsedSeconds = context.Elapsed.Elapsed.TotalSeconds;
+                                if (elapsedSeconds > targetSeconds)
+                                {
+                                    // Count down 2, 1, 0, then wrap back around to 2.
+                                    context.Countdown = (2 + context.Countdown) % 3;
+
+                                    // Every time we start over, we have to reset the clock.
+                                    if (context.Countdown == 2)
+                                        context.Elapsed.Restart();
+
+                                    // Re-announce the published service on the network.
+                                    trafficMonitor.Broadcast(context.AnnouncePacket);
+                                }
+                            }
                             break;
 
                         case PublishState.Unpublish2:
@@ -337,5 +371,7 @@ namespace CosineKitty.ZeroConfigWatcher
         public int Countdown;
         public Message AnnouncePacket;
         public Message UnpublishPacket;
+        public Stopwatch Elapsed = new Stopwatch();
+        public double TimeToLiveSeconds = 4500.0;
     }
 }
