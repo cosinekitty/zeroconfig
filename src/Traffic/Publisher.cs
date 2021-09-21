@@ -26,11 +26,13 @@ namespace CosineKitty.ZeroConfigWatcher
         {
             trafficMonitor = monitor;
             timer.Elapsed += OnTimerTick;
+            monitor.OnReceive += OnPacketReceived;
         }
 
         public void Dispose()
         {
             closing = true;     // prevent publishing anything new
+            trafficMonitor.OnReceive -= OnPacketReceived;
 
             // Get a list of all published names.
             string[] allNames;
@@ -93,6 +95,7 @@ namespace CosineKitty.ZeroConfigWatcher
                             break;
 
                         case PublishState.Ready:
+                            // FIXFIXFIX: If TTL is close to expiring, re-publish.
                             break;
 
                         case PublishState.Unpublish2:
@@ -125,6 +128,31 @@ namespace CosineKitty.ZeroConfigWatcher
             timer.Start();  // schedule next timer tick
         }
 
+        private void OnPacketReceived(object sender, Packet packet)
+        {
+            var message = new Message(packet.Data);
+
+            lock (table)
+            {
+                foreach (Question question in message.Questions)
+                {
+                    if (question.QType == QType.PTR)
+                    {
+                        // Respond to any relevant questions about things we have published.
+                        foreach (PublishContext context in table.Values)
+                        {
+                            if (context.State == PublishState.Ready && context.Service.ServiceType == question.QName)
+                            {
+                                context.State = PublishState.Announce3;
+                                context.Countdown = 1;
+                                // FIXFIXFIX: !!! Reset TTL
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         public bool Publish(PublishedService service)
         {
             if (closing)
@@ -140,6 +168,8 @@ namespace CosineKitty.ZeroConfigWatcher
                 AnnouncePacket = MakeAnnouncePacket(service, serverIpAddress),
                 UnpublishPacket = MakeUnpublishPacket(service),
             };
+
+            // FIXFIXFIX: !!! Reset TTL
 
             Message claim = MakeClaimPacket(context.Service, serverIpAddress);
             trafficMonitor.Broadcast(claim);
