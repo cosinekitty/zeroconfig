@@ -179,7 +179,7 @@ namespace CosineKitty.ZeroConfigWatcher
                             {
                                 context.State = PublishState.Announce3;
                                 context.Countdown = 1;
-                                // FIXFIXFIX: !!! Reset TTL
+                                context.Elapsed.Restart();
                             }
                         }
                     }
@@ -202,8 +202,6 @@ namespace CosineKitty.ZeroConfigWatcher
                 AnnouncePacket = MakeAnnouncePacket(service, serverIpAddress),
                 UnpublishPacket = MakeUnpublishPacket(service),
             };
-
-            // FIXFIXFIX: !!! Reset TTL
 
             Message claim = MakeClaimPacket(context.Service, serverIpAddress);
             trafficMonitor.Broadcast(claim);
