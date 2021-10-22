@@ -148,8 +148,6 @@ namespace CosineKitty.ZeroConfigWatcher
                 string name = browseResult.Name;
                 string serviceType = AddLocalSuffix(browseResult.ServiceType);
 
-                // FIXFIXFIX: send out packets if needed to initiate discovery.
-                // For now we use passive resolution only: we either already know the answer or we don't.
                 lock (serviceRoot)
                 {
                     if (serviceRoot.TryGetValue(serviceType, out ServiceCollection collection))

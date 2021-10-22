@@ -56,25 +56,12 @@ namespace Heijden.DNS
             {
                 // Can we represent the remaining tail portion using compression?
                 // Search earlier for a matching tail pattern.
-                // Compression cannot represent a position pointer beyond 0x3fff bytes.
-                int limit = Math.Min(0x3fff, buffer.Count);
-                for (int position = 0; position + (serial.Count - index) <= limit; ++position)
+                if (FindTail(serial, index, out int position))
                 {
-                    if (buffer[position] == serial[index])      // does length match?
-                    {
-                        bool match = true;
-                        for (int k = 1; match && k < serial[index]; ++k)
-                            if (buffer[position + k] != serial[index + k])
-                                match = false;
-
-                        if (match)
-                        {
-                            // The remaining tail portion matches, so we can compress it.
-                            buffer.Add((byte)(0xc0 | (position >> 8)));
-                            buffer.Add((byte)position);
-                            return;
-                        }
-                    }
+                    // The remaining tail portion matches, so we can compress it.
+                    buffer.Add((byte)(0xc0 | (position >> 8)));
+                    buffer.Add((byte)position);
+                    return;
                 }
 
                 // Write the next label to the output.
@@ -88,6 +75,37 @@ namespace Heijden.DNS
 
             // Completely uncompressed names need to end with a 0 terminator.
             buffer.Add(0);
+        }
+
+        private bool FindTail(List<byte> serial, int index, out int position)
+        {
+            // Domain names can be compressed by adding a pointer that
+            // redirects to the rest of the string.  See:
+            // https://datatracker.ietf.org/doc/html/rfc1035#section-4.1.4
+
+            position = -1;
+
+            int tailLength = serial.Count - index;
+            if (tailLength < 3)
+                return false;   // Tail compression would not make the packet shorter.
+
+            // Compression cannot represent a position pointer beyond 0x3fff bytes.
+            // And any position at or beyond 1+(buffer.Count-tailLength) will not
+            // be long enough to hold the tail.
+            int limit = Math.Min(0x3fff, 1 + (buffer.Count - tailLength));
+
+            for (position = 0; position < limit; ++position)
+            {
+                bool match = true;
+                for (int offset = 0; match && (offset < tailLength); ++offset)
+                    if (buffer[position + offset] != serial[index + offset])
+                        match = false;
+
+                if (match)
+                    return true;
+            }
+
+            return false;   // could not find a matching tail
         }
 
         public void WriteDomainNameUncompressed(string s)
@@ -111,28 +129,6 @@ namespace Heijden.DNS
             // Terminate the label list with a 0-length byte.
             buffer.Add(0);
             return buffer;
-        }
-
-        private int FindMatchingByteSequence(byte[] data)
-        {
-            if (data.Length < 3)
-                return -1;  // cannot make this data any smaller by referring to earlier strings
-
-            // Search the first 0x3fff bytes for [length, data...] matching bytes.
-            int length = Math.Min(0x3fff, buffer.Count);
-            for (int position = 0; position + data.Length + 1 <= length; ++position)
-            {
-                if (buffer[position] == data.Length)
-                {
-                    bool match = true;
-                    for (int index = 0; match && index < data.Length; ++index)
-                        if (buffer[position + 1 + index] != data[index])
-                            match = false;
-                    if (match)
-                        return position;
-                }
-            }
-            return -1;  // no match found
         }
 
         public void WriteString(string s)
