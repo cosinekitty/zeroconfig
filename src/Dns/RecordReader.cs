@@ -86,7 +86,9 @@ namespace Heijden.DNS
                 if ((length & 0xc0) == 0xc0)
                 {
                     // The actual label text lives at an earlier position in this same packet.
-                    int position = (length & 0x3f) << 8 | ReadByte();
+                    int position = ((length & 0x3f) << 8) | ReadByte();
+                    if (position < 0 || position >= m_Position - 2)
+                        throw new Exception($"Invalid domain name compression reference: position=0x{position:x}, m_Position=0x{m_Position:x}");
 
                     // Total hack: fake like we are reading from that position.
                     int savePosition = m_Position;
