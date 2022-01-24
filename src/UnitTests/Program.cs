@@ -53,6 +53,33 @@ namespace CosineKitty.ZeroConfigWatcher.UnitTests
             }
         }
 
+        static byte[] ParseHexDump(string hexdump)
+        {
+            // Parses hex dump from CasaTunes function RecordReader.cs ! LogPacket(string caller).
+            // This is not the same format used by the HexDump() in this file.
+            // 0000: 00 00 84 00 00 00 00 05 00 00 00 00 0e 5f 73 75   ............._su
+            var list = new List<byte>();
+            string[] lines = hexdump.Split(new char[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+            foreach (string line in lines)
+            {
+                int col_index = line.IndexOf(": ");
+                if (col_index < 0)
+                    break;
+                string s = line.Substring(col_index + 2);
+                int sep_index = s.IndexOf("   ");
+                if (sep_index < 0)
+                    break;
+                s = s.Substring(0, sep_index);
+                string[] token = s.Split(new char[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries);
+                foreach (string t in token)
+                {
+                    byte x = byte.Parse(t, NumberStyles.HexNumber);
+                    list.Add(x);
+                }
+            }
+            return list.ToArray();
+        }
+
         static int Main(string[] args)
         {
             // Force use of "." for the decimal mark, regardless of local culture settings.
@@ -112,6 +139,7 @@ namespace CosineKitty.ZeroConfigWatcher.UnitTests
             new Test("ReadWrite_A", ReadWrite_A),
             new Test("ReadWrite_AAAA", ReadWrite_AAAA),
             new Test("ReadWrite_NSEC", ReadWrite_NSEC),
+            new Test("Weird_NSEC", Weird_NSEC),
             new Test("ReadWrite_PTR", ReadWrite_PTR),
             new Test("ReadWrite_SRV", ReadWrite_SRV),
             new Test("ReadWrite_TXT", ReadWrite_TXT),
@@ -292,6 +320,38 @@ namespace CosineKitty.ZeroConfigWatcher.UnitTests
             }
 
             return Fail($"Reconstituted record is of incorrect type {copy.RECORD.GetType()}");
+        }
+
+        static int Weird_NSEC()
+        {
+            const string hexdump = @"
+0000: 00 00 84 00 00 00 00 05 00 00 00 00 0e 5f 73 75   ............._su
+0010: 65 73 38 30 30 64 65 76 69 63 65 04 5f 74 63 70   es800device._tcp
+0020: 05 6c 6f 63 61 6c 00 00 0c 00 01 00 00 11 94 00   .local..........
+0030: 32 2f 61 31 31 33 64 41 72 63 61 6d 2d 31 66 63   2/a113dArcam-1fc
+0040: 31 34 65 37 30 2d 39 36 65 32 2d 34 65 31 36 2d   14e70-96e2-4e16-
+0050: 62 62 63 38 2d 61 39 62 62 30 33 33 32 36 33 36   bbc8-a9bb0332636
+0060: 63 c0 0c 0c 73 64 70 35 35 2d 35 38 38 61 37 36   c...sdp55-588a76
+0070: c0 20 00 2f 80 01 00 00 00 78 00 08 c1 34 00 04   . ./.....x...4..
+0080: 40 00 00 08 c0 31 00 2f 80 01 00 00 11 94 00 09   @....1./........
+0090: c0 31 00 05 00 00 80 00 40 c0 31 00 21 80 01 00   .1......@.1.!...
+00a0: 00 00 78 00 08 00 00 00 00 00 50 c0 63 c0 31 00   ..x.......P.c.1.
+00b0: 10 80 01 00 00 11 94 00 b3 20 6e 61 6d 65 3d 4a   ......... name=J
+00c0: 42 4c 20 53 79 6e 74 68 65 73 69 73 20 53 44 50   BL Synthesis SDP
+00d0: 2d 35 35 2d 35 38 38 61 37 36 2b 73 65 72 69 61   -55-588a76+seria
+00e0: 6c 3d 63 61 64 35 38 36 64 64 2d 36 62 36 32 2d   l=cad586dd-6b62-
+00f0: 34 62 64 37 2d 39 31 36 38 2d 33 35 32 35 64 36   4bd7-9168-3525d6
+0100: 34 66 31 30 34 38 34 75 75 69 64 3d 61 31 31 33   4f10484uuid=a113
+0110: 64 41 72 63 61 6d 2d 31 66 63 31 34 65 37 30 2d   dArcam-1fc14e70-
+0120: 39 36 65 32 2d 34 65 31 36 2d 62 62 63 38 2d 61   96e2-4e16-bbc8-a
+0130: 39 62 62 30 33 33 32 36 33 36 63 20 6d 61 6e 75   9bb0332636c manu
+0140: 66 61 63 74 75 72 65 72 3d 48 61 72 6d 61 6e 20   facturer=Harman 
+0150: 4c 75 78 75 72 79 20 41 75 64 69 6f 0f 69 70 3d   Luxury Audio.ip=
+0160: 31 39 32 2e 31 36 38 2e 34 2e 32 30               192.168.4.20
+";
+            byte[] data = ParseHexDump(hexdump);
+            var message = new Message(data);
+            return 0;
         }
 
         static int ReadWrite_NSEC()
