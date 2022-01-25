@@ -164,7 +164,7 @@ namespace CosineKitty.ZeroConfigWatcher
 
         private void OnPacketReceived(object sender, Packet packet)
         {
-            var message = new Message(packet.Data);
+            var message = new Message(packet.Data, true);
 
             lock (table)
             {

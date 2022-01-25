@@ -220,7 +220,7 @@ namespace CosineKitty.ZeroConfigWatcher.UnitTests
             byte[] data = writer.GetData();
 
             // Parse the binary data back as a packet.
-            var reader = new RecordReader(data);
+            var reader = new RecordReader(data, true);
             var copy = new RR(reader);
             return copy;
         }
@@ -325,7 +325,7 @@ namespace CosineKitty.ZeroConfigWatcher.UnitTests
         static int TestHexDump(int id, string hexdump)
         {
             byte[] data = ParseHexDump(hexdump);
-            var message = new Message(data);
+            var message = new Message(data, false);
             foreach (RR rr in message.Answers)
                 Console.WriteLine("TestHexDump({0}): rr = {1}", id, rr);
             return 0;
@@ -604,7 +604,7 @@ namespace CosineKitty.ZeroConfigWatcher.UnitTests
             };
 
             // Deserialize the packet into a Message object.
-            var original = new Message(packet);
+            var original = new Message(packet, true);
             if (0 != CheckLivingRoomAirPlaySpeaker(original))
                 return 1;
 
@@ -616,7 +616,7 @@ namespace CosineKitty.ZeroConfigWatcher.UnitTests
             // I can't just compare copyData[] to packet[], because original
             // data does not follow the spec for suppressing domain name configuration.
             // So I re-deserialize it and verify it the same way as the original.
-            var copy = new Message(copyData);
+            var copy = new Message(copyData, true);
             if (0 != CheckLivingRoomAirPlaySpeaker(copy))
                 return 1;
 

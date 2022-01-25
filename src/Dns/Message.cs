@@ -22,10 +22,10 @@ namespace Heijden.DNS
             header = new Header();
         }
 
-        public Message(byte[] data)
+        public Message(byte[] data, bool enableSecurityExtensions)
         {
             TimeStamp = DateTime.Now;
-            var rr = new RecordReader(data);
+            var rr = new RecordReader(data, enableSecurityExtensions);
 
             Questions = new List<Question>();
             Answers = new List<RR>();

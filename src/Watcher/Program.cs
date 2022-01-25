@@ -71,7 +71,7 @@ namespace Watcher
 
         static void Interpret(byte[] data)
         {
-            var message = new Message(data);
+            var message = new Message(data, true);
 
             foreach (Question q in message.Questions)
                 PrintQuestion(q);

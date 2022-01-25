@@ -6,12 +6,14 @@ namespace Heijden.DNS
 {
     public class RecordReader
     {
-        byte[] m_Data;
-        int m_Position;
+        private byte[] m_Data;
+        private int m_Position;
+        private bool enableSecurityExtensions;
 
-        public RecordReader(byte[] data)
+        public RecordReader(byte[] data, bool enableSecurityExtensions)
         {
             m_Data = data;
+            this.enableSecurityExtensions = enableSecurityExtensions;
         }
 
         public int Position
@@ -102,6 +104,10 @@ namespace Heijden.DNS
                         return tail;
                     return Encoding.UTF8.GetString(bytes.ToArray()) + tail;
                 }
+
+                if ((length & 0xc0) != 0)
+                    throw new Exception($"Undefined length byte encoding: 0x{length:x} at m_Position={m_Position:x}");
+
                 // Not using compression, so copy the next label over.
                 while (length > 0)
                 {
@@ -112,7 +118,8 @@ namespace Heijden.DNS
             }
             if (bytes.Count == 0)
                 return ".";
-            return Encoding.UTF8.GetString(bytes.ToArray());
+            string name = Encoding.UTF8.GetString(bytes.ToArray());
+            return name;
         }
 
         public string ReadString()
@@ -134,23 +141,48 @@ namespace Heijden.DNS
 
         public Record ReadRecord(Type type, int Length)
         {
+            int pos_before = Position;
+
+            Record rec;
             switch (type)
             {
                 case Type.A:
-                    return new RecordA(this);
+                    rec = new RecordA(this);
+                    break;
+
                 case Type.PTR:
-                    return new RecordPTR(this);
+                    rec =  new RecordPTR(this);
+                    break;
+
                 case Type.TXT:
-                    return new RecordTXT(this, Length);
+                    rec = new RecordTXT(this, Length);
+                    break;
+
                 case Type.AAAA:
-                    return new RecordAAAA(this);
+                    rec = new RecordAAAA(this);
+                    break;
+
                 case Type.SRV:
-                    return new RecordSRV(this);
+                    rec = new RecordSRV(this);
+                    break;
+
                 case Type.NSEC:
-                    return new RecordNSEC(this, Length);
+                    if (enableSecurityExtensions)
+                        rec = new RecordNSEC(this, Length);
+                    else
+                        rec = new RecordUnknown(this, type, Length);
+                    break;
+
                 default:
-                    return new RecordUnknown(this, type, Length);
+                    rec = new RecordUnknown(this, type, Length);
+                    break;
             }
+
+            int bytesRead = Position - pos_before;
+            if (bytesRead != Length)
+                throw new Exception($"Number of bytes read = {bytesRead}, but declared length = {Length}");
+
+            return rec;
         }
     }
 }
