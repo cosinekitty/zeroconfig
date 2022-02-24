@@ -325,9 +325,16 @@ namespace CosineKitty.ZeroConfigWatcher.UnitTests
         static int TestHexDump(int id, string hexdump)
         {
             byte[] data = ParseHexDump(hexdump);
-            var message = new Message(data, false);
-            foreach (RR rr in message.Answers)
-                Console.WriteLine("TestHexDump({0}): rr = {1}", id, rr);
+            try
+            {
+                var message = new Message(data, false);
+                foreach (RR rr in message.Answers)
+                    Console.WriteLine("TestHexDump({0}): rr = {1}", id, rr);
+            }
+            catch (UnsupportedDomainNameCompressionException ex)
+            {
+                Console.WriteLine($"TestHexDump({id}): Tolerating unsupported domain name at offset 0x{ex.Offset:x}");
+            }
             return 0;
         }
 
@@ -335,6 +342,19 @@ namespace CosineKitty.ZeroConfigWatcher.UnitTests
         {
             int rc = 0;
             int id = 0;
+
+            if (rc == 0) rc = TestHexDump(++id, @"
+0000: 00 00 84 00 00 00 00 05 00 00 00 00 09 5f 73 65   ............._se
+0010: 72 76 69 63 65 73 07 5f 64 6e 73 2d 73 64 04 5f   rvices._dns-sd._
+0020: 75 64 70 05 6c 6f 63 61 6c 00 00 0c 00 01 00 00   udp.local.......
+0030: 02 58 00 15 08 5f 61 74 65 6c 6e 65 74 04 5f 74   .X..._atelnet._t
+0040: 63 70 05 6c 6f 63 61 6c 00 c0 0c 00 0c 00 01 00   cp.local........
+0050: 00 02 58 00 13 06 5f 61 68 74 74 70 04 5f 74 63   ..X..._ahttp._tc
+0060: 70 05 6c 6f 63 61 6c 00 c0 0c 00 0c 00 01 00 00   p.local.........
+0070: 02 58 00 03 80 0c 00 c0 0c 00 0c 00 01 00 00 02   .X..............
+0080: 58 00 03 80 0c 00 c0 0c 00 0c 00 01 00 00 02 58   X..............X
+0090: 00 03 80 0c 00                                    .....
+");
 
             if (rc == 0) rc = TestHexDump(++id, @"
 0000: 00 00 84 00 00 00 00 05 00 00 00 00 0e 5f 73 75   ............._su

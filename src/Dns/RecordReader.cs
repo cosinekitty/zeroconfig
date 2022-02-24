@@ -4,6 +4,17 @@ using System.Text;
 
 namespace Heijden.DNS
 {
+    public class UnsupportedDomainNameCompressionException : Exception
+    {
+        public readonly int Offset;
+
+        public UnsupportedDomainNameCompressionException(int offset)
+            : base($"Unsupported domain name compression type at offset {offset}")
+        {
+            Offset = offset;
+        }
+    }
+
     public class RecordReader
     {
         private byte[] m_Data;
@@ -80,6 +91,7 @@ namespace Heijden.DNS
 
             var bytes = new List<byte>();
             int length = 0;
+            string name;
 
             // Get the length of the next label.
             while ((length = ReadByte()) != 0)
@@ -100,13 +112,18 @@ namespace Heijden.DNS
                     // Restore the object back to its original state.
                     m_Position = savePosition;
 
-                    if (bytes.Count == 0)
-                        return tail;
-                    return Encoding.UTF8.GetString(bytes.ToArray()) + tail;
+                    string head = (bytes.Count == 0) ? "" : Encoding.UTF8.GetString(bytes.ToArray());
+                    name = head + tail;
+                    return name;
                 }
 
                 if ((length & 0xc0) != 0)
-                    throw new Exception($"Undefined length byte encoding: 0x{length:x} at m_Position={m_Position:x}");
+                {
+                    // There are other encoding formats defined, but we do not support them.
+                    // I mentioned this here on GitHub:
+                    // https://github.com/novotnyllc/Zeroconf/issues/226
+                    throw new UnsupportedDomainNameCompressionException(m_Position - 1);
+                }
 
                 // Not using compression, so copy the next label over.
                 while (length > 0)
@@ -116,9 +133,8 @@ namespace Heijden.DNS
                 }
                 bytes.Add((byte)'.');
             }
-            if (bytes.Count == 0)
-                return ".";
-            string name = Encoding.UTF8.GetString(bytes.ToArray());
+
+            name = (bytes.Count == 0) ? "." : Encoding.UTF8.GetString(bytes.ToArray());
             return name;
         }
 
